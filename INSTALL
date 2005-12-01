@@ -1,0 +1,41 @@
+Installation:
+
+Note: These install instructions were originally from matlab.el and need some
+      revising.
+
+ToDo: Add mlint & tlc descriptionis here.
+
+-----
+
+Put the this file as "matlab.el" somewhere on your load path, then
+add this to your .emacs or site-init.el file:
+
+  (autoload 'matlab-mode "matlab" "Enter MATLAB mode." t)
+  (setq auto-mode-alist (cons '("\\.m\\'" . matlab-mode) auto-mode-alist))
+  (autoload 'matlab-shell "matlab" "Interactive MATLAB mode." t)
+
+User Level customizations (You need not use them all):
+  (setq matlab-indent-function-body t)  ; if you want function bodies indented
+  (setq matlab-verify-on-save-flag nil) ; turn off auto-verify on save
+  (defun my-matlab-mode-hook ()
+    (setq fill-column 76))		; where auto-fill should wrap
+  (add-hook 'matlab-mode-hook 'my-matlab-mode-hook)
+  (defun my-matlab-shell-mode-hook ()
+	'())
+  (add-hook 'matlab-shell-mode-hook 'my-matlab-shell-mode-hook)
+
+Please read the mode help for matlab-mode for additional
+configuration options.
+
+Syntax highlighting:
+  To get font-lock try adding this for older emacsen:
+    (font-lock-mode 1)
+  Or for newer versions of Emacs:
+    (global-font-lock-mode t)
+  To get hilit19 support try adding:
+    (matlab-mode-hilit)
+
+This package requires easymenu, tempo, and derived.
+This package will optionally use custom, shell, and gud.
+This package supports language specific extensions in imenu, func-menu,
+     speedbar, font-lock, and hilit19.
