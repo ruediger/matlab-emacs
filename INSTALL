@@ -3,9 +3,7 @@ Installation:
 Note: These install instructions were originally from matlab.el and need some
       revising.
 
-ToDo: Add mlint & tlc descriptionis here.
-
------
+** matlab.el:
 
 Put the this file as "matlab.el" somewhere on your load path, then
 add this to your .emacs or site-init.el file:
@@ -39,3 +37,36 @@ This package requires easymenu, tempo, and derived.
 This package will optionally use custom, shell, and gud.
 This package supports language specific extensions in imenu, func-menu,
      speedbar, font-lock, and hilit19.
+
+
+
+** mlint.el
+
+To use mlint with matlab-mode, add the following lines to your .emacs
+file.
+
+(autoload 'mlint-minor-mode "mlint" nil t)
+(add-hook 'matlab-mode-hook (lambda () (mlint-minor-mode 1)))
+
+This requires Emacs version 21.x or later or XEmacs version 21.x or later.
+This requires mlint, a part of MATLAB 7.0 (R14)
+This requires matlab.el
+This requires eieio version 0.18 or later.
+     EIEIO 0.17 will work and has poor color choice which can be customized.
+     EIEIO 0.17 is currently an XEmacs package eieio-1.03 or newer
+           OR XEmacs sumo package Sept. 2002 or newer.
+     Newer versions of EIEIO are a part of CEDET.  See:
+	   http://cedet.sf.net/eieio.shtml
+
+
+** tlc.el
+
+To use this mode, put the this file into your load path, and add
+the following to your .emacs file:
+
+  (require 'tlc)
+or
+  (autoload 'tlc-mode "tlc" "tlc Editing Mode" t)
+  (add-to-list 'auto-mode-alist '("\\.tlc$" . tlc-mode))
+  (setq tlc-indent-function t)
+
