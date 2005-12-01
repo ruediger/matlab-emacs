@@ -1,0 +1,4 @@
+2005-12-01  Eric Ludlam  <eludlam@mathworks.com>
+
+	* matlab.el: Removed ChangLog from end of file.
+
