@@ -1,3 +1,56 @@
-matlab-emacs project:
+matlab-emacs Project:
 
 MATLAB and Emacs integration
+
+
+
+* Finding Updates
+
+** Releases
+
+   The latest stable version of matlab.el can be found on MATLAB Central:
+
+   Category:
+   http://www.mathworks.com/matlabcentral/fileexchange/loadCategory.do?objectId=19&objectType=Category
+   This File
+   http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=104&objectType=file
+
+   Older versions of matlab.el can be found in as matlab.el.1.10.1
+   for emacsen that do not have the latest additional utilities such
+   as tempo and derived.
+
+   matlab.el is now shipping on MATLAB CDs starting with 6.5 (R13).
+   Updates after a release of MATLAB will be made to MATLAB Central
+   and announced on the mailing list.
+
+** CVS
+
+   matlab-emacs is available via CVS from SourceForge.
+
+   Homepage:
+   http://matlab-emacs.sf.net
+
+   Project Page:
+   http://sourceforge.net/projects/matlab-emacs
+
+   CVS Repository:
+   http://sourceforge.net/cvs/?group_id=154105
+
+* Mailing List:
+
+** New Mailing List
+
+   A new matlab-emacs-discuss mailing lisit has been created at
+   SourceForge.  Use this list to get updates on new releases and
+   discuss topics relivant to the matlab-emacs project.
+
+   http://lists.sourceforge.net/mailman/listinfo/matlab-emacs-discuss
+
+** Old Mailing List
+
+   The original mailing list where beta versions of matlab.el were
+   posted, and where comments, questions, bug reports, and answers to
+   questions could be sent.  If you were subscribed to this list,
+   please unsubscribe, and subscribe to the new list above.
+
+   to unsubscribe, send email with the body of: "unsubscribe matlab-emacs"
