@@ -1,3 +1,11 @@
+2005-12-02  Eric Ludlam  <eludlam@mathworks.com>
+
+	* README, INSTALL: Refer to CEDET project for dependancies.
+
+	* Makefile, Project.ede: New build system.
+	
+	* matlab-load.el: autoloads file.
+
 2005-12-01  Eric Ludlam  <eludlam@mathworks.com>
 
 	* matlab.el: Removed ChangLog from end of file.
