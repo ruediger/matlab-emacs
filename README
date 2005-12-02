@@ -36,6 +36,12 @@ MATLAB and Emacs integration
    CVS Repository:
    http://sourceforge.net/cvs/?group_id=154105
 
+** Dependancies
+
+   MATLAB-Emacs now requires the CEDET suite for the following items:
+	- Build system (Makefiles, etc)
+	- mlint (uses EIEIO object system)
+
 * Mailing List:
 
 ** New Mailing List

@@ -3,6 +3,29 @@ Installation:
 Note: These install instructions were originally from matlab.el and need some
       revising.
 
+** DEPENDANCIES
+
+This matlab-emacs build system now requires the CEDET suite.
+
+   http://cedet.sf.net
+
+The build system uses EDE for project management, Makefile creation,
+and autoload generation.
+
+To build:
+
+   make "LOADPATH=../cedet/common ../cedet/eieio"
+
+where ../cedet is a full or relative path to the CEDET suite.
+
+This tool requires CEDET 1.0pre3 or later.
+
+
+It is possible to use matlab.el, and associated programs without this
+extra package.  To do so, install and compile only those lisp files
+you need.
+
+
 ** matlab.el:
 
 Put the this file as "matlab.el" somewhere on your load path, then
