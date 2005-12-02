@@ -1,0 +1,24 @@
+;; Object ede-proj-project
+;; EDE project file.
+(ede-proj-project "ede-proj-project"
+  :name "matlab-emacs"
+  :file "Project.ede"
+  :targets (list 
+   (ede-proj-target-elisp-autoloads "autoloads"
+    :name "autoloads"
+    :path ""
+    :autoload-file "matlab-load.el"
+    )
+   (ede-proj-target-makefile-miscelaneous "misc"
+    :name "misc"
+    :path ""
+    :source '("ChangeLog" "ChangeLog.old1" "ChangeLog.old2" "INSTALL" "README")
+    )
+   (ede-proj-target-elisp "lisp"
+    :name "lisp"
+    :path ""
+    :source '("matlab.el" "mlint.el" "tlc.el")
+    :aux-packages '("eieio")
+    )
+   )
+  )

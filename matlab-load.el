@@ -1,0 +1,86 @@
+;;; matlab-load.el --- Auto-generated CEDET autoloads
+;;
+;;; Code:
+
+
+;;;### (autoloads (matlab-shell matlab-mode) "matlab" "matlab.el"
+;;;;;;  (17295 18467))
+;;; Generated autoloads from matlab.el
+
+(autoload (quote matlab-mode) "matlab" "\
+MATLAB-mode is a major mode for editing MATLAB dot-m files.
+\\<matlab-mode-map>
+Convenient editing commands are:
+ \\[matlab-comment-region]   - Comment/Uncomment out a region of code.
+ \\[matlab-fill-comment-line] - Fill the current comment line.
+ \\[matlab-fill-region] - Fill code and comments in region.
+ \\[matlab-fill-paragraph]     - Refill the current command or comment.
+ \\[matlab-complete-symbol]   - Symbol completion of matlab symbolsbased on the local syntax.
+ \\[matlat-indent-sexp] - Indent syntactic block of code.
+
+Convenient navigation commands are:
+ \\[matlab-beginning-of-command]   - Move to the beginning of a command.
+ \\[matlab-end-of-command]   - Move to the end of a command.
+ \\[matlab-beginning-of-defun] - Move to the beginning of a function.
+ \\[matlab-end-of-defun] - Move do the end of a function.
+ \\[matlab-forward-sexp] - Move forward over a syntactic block of code.
+ \\[matlab-backward-sexp] - Move backwards over a syntactic block of code.
+
+Convenient template insertion commands:
+ \\[tempo-template-matlab-function] - Insert a function definition.
+ \\[tempo-template-matlab-if] - Insert an IF END block.
+ \\[tempo-template-matlab-for] - Insert a FOR END block.
+ \\[tempo-template-matlab-switch] - Insert a SWITCH END statement.
+ \\[matlab-insert-next-case] - Insert the next CASE condition in a SWITCH.
+ \\[matlab-insert-end-block] - Insert a matched END statement.  With optional ARG, reindent.
+ \\[matlab-stringify-region] - Convert plaintext in region to a string with correctly quoted chars.
+
+Variables:
+  `matlab-indent-level'		Level to indent blocks.
+  `matlab-cont-level'		Level to indent continuation lines.
+  `matlab-cont-requires-ellipsis' Does your MATLAB support implied elipsis.
+  `matlab-case-level'		Level to unindent case statements.
+  `matlab-indent-past-arg1-functions'
+                                Regexp of functions to indent past the first
+                                  argument on continuation lines.
+  `matlab-maximum-indents'      List of maximum indents during lineups.
+  `matlab-comment-column'       Goal column for on-line comments.
+  `fill-column'			Column used in auto-fill.
+  `matlab-indent-function-body' If non-nil, indents body of MATLAB functions.
+  `matlab-functions-have-end'	If non-nil, MATLAB functions terminate with end.
+  `matlab-return-function'	Customize RET handling with this function.
+  `matlab-auto-fill'            Non-nil, do auto-fill at startup.
+  `matlab-fill-code'            Non-nil, auto-fill code.
+  `matlab-fill-strings'         Non-nil, auto-fill strings.
+  `matlab-verify-on-save-flag'  Non-nil, enable code checks on save.
+  `matlab-highlight-block-match-flag'
+                                Enable matching block begin/end keywords.
+  `matlab-vers-on-startup'	If t, show version on start-up.
+  `matlab-handle-simulink'      If t, enable simulink keyword highlighting.
+
+All Key Bindings:
+\\{matlab-mode-map}" t nil)
+
+(autoload (quote matlab-shell) "matlab" "\
+Create a buffer with MATLAB running as a subprocess.
+
+MATLAB shell cannot work on the MS Windows platform because MATLAB is not
+a console application." t nil)
+
+;;;***
+
+;;;### (autoloads (tlc-mode) "tlc" "tlc.el" (17295 18676))
+;;; Generated autoloads from tlc.el
+
+(autoload (quote tlc-mode) "tlc" "\
+Major mode for editing Tlc files, or files found in tlc directories." t nil)
+(add-to-list 'auto-mode-alist '("\\.tlc$" .tlc-mode))
+
+;;;***
+
+;; Local Variables:
+;; version-control: never
+;; no-byte-compile: t
+;; no-update-autoloads: t
+;; End:
+;;; matlab-load.el ends here
