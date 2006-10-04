@@ -599,6 +599,7 @@ If font lock is not loaded, lay in wait."
     (define-key km [(control c) (control q)] 'matlab-fill-region)
     (define-key km [(control c) (control s)] 'matlab-shell-save-and-go)
     (define-key km [(control c) (control r)] 'matlab-shell-run-region)
+    (define-key km [(meta control return)] 'matlab-shell-run-cell)
     (define-key km [(control c) (control t)] 'matlab-show-line-info)
     (define-key km [(control c) ?. ] 'matlab-find-file-on-path)
     (define-key km [(control h) (control m)] matlab-help-map)
@@ -1144,6 +1145,8 @@ All Key Bindings:
   (setq comment-start-skip "%\\s-+")
   (make-local-variable 'comment-start)
   (setq comment-start "%")
+  (make-local-variable 'page-delimiter)
+  (setq page-delimiter "^\\(\f\\|%% \\)")
   (make-local-variable 'comment-column)
   (setq comment-column matlab-comment-column)
   (make-local-variable 'comment-indent-function)
@@ -2963,10 +2966,14 @@ ARG is passed to `fill-paragraph' and will justify the text."
 		  (not (matlab-lattr-cont))))
 	 ;; We are in a comment, lets fill the paragraph with some
 	 ;; nice regular expressions.
-	 (let ((paragraph-separate "%[a-zA-Z]\\|%[ \t]*$\\|[ \t]*$")
+	 ;; Cell start/end markers of %% also separate paragraphs
+	 (let ((paragraph-separate "%%\\|%[a-zA-Z]\\|%[ \t]*$\\|[ \t]*$")
 	       (paragraph-start "%[a-zA-Z]\\|%[ \t]*$\\|[ \t]*$")
 	       (paragraph-ignore-fill-prefix nil)
 	       (start (save-excursion (matlab-beginning-of-command)
+				      (if (looking-at "%%")
+					  (progn (end-of-line)
+						 (forward-char 1)))
 				      (point)))
 	       (end (save-excursion (matlab-end-of-command)
 				    (point)))
@@ -3925,6 +3932,7 @@ desired.  Optional argument FAST is not used."
      ["Start MATLAB" matlab-shell (not (matlab-with-emacs-link)) ]
      ["Save and go" matlab-shell-save-and-go t]
      ["Run Region" matlab-shell-run-region t]
+     ["Run Cell" matlab-shell-run-cell t]
      ["Version" matlab-show-version t]
      "----"
      ["Find M file" matlab-find-file-on-path t]
@@ -4709,6 +4717,25 @@ This command requires an active MATLAB shell."
       (goto-char (point-max))
       (display-buffer msbn))
     ))
+
+(defun matlab-shell-run-cell ()
+  "Run the cell the cursor is in."
+  (interactive)
+  (let ((start (save-excursion (forward-page -1)
+			       (if (looking-at "function")
+				   (error "You are not in a cell.  Try `matlab-shell-save-and-go' instead"))
+			       (when (matlab-ltype-comm)
+				 ;; Skip over starting comment from the current cell.
+				 (matlab-end-of-command 1)
+				 (end-of-line)
+				 (forward-char 1))
+			       (point)))
+	(end (save-excursion (forward-page 1)
+			     (when (matlab-ltype-comm)
+			       (beginning-of-line)
+			       (forward-char -1))
+			     (point))))
+    (matlab-shell-run-region start end)))
 
 (defun matlab-shell-run-region-or-line ()
   "Run region from BEG to END and display result in MATLAB shell.
