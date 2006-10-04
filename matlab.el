@@ -1,3 +1,5 @@
+; Geck  305024
+
 ;;; matlab.el --- major mode for MATLAB dot-m files
 ;;
 ;; Author: Matt Wette <mwette@alumni.caltech.edu>,
@@ -813,7 +815,7 @@ Argument LIMIT is the maximum distance to search."
 	    t
 	    )))))
 
-(defcustom matlab-keyword-list '("global" "persistent" "for" "while"
+(defcustom matlab-keyword-list '("global" "persistent" "for" "parfor" "while"
 				 "if" "elseif" "else"
 				 "endfunction" "return" "break" "continue"
 				 "switch" "case" "otherwise" "try"
@@ -865,7 +867,7 @@ Customizing this variable is only useful if `regexp-opt' is available."
 	(concat "\\<\\(" (regexp-opt matlab-keyword-list) "\\)\\>")
       ;; Original hard-coded value for pre Emacs 20.1
       "\\<\\(break\\|ca\\(se\\|tch\\)\\|e\\(lse\\(\\|if\\)\\|ndfunction\\)\
-\\|for\\|global\\|if\\|otherwise\\|return\\|switch\\|try\\|while\\|tic\\|toc\\)\\>")
+\\|\\(par\\)?for\\|global\\|if\\|otherwise\\|return\\|switch\\|try\\|while\\|tic\\|toc\\)\\>")
     '(0 font-lock-keyword-face))
    ;; The end keyword is only a keyword when not used as an array
    ;; dereferencing part.
@@ -938,7 +940,7 @@ ui\\(cont\\(ext\\(\\|menu\\)\\|rol\\)\\|menu\\|\
 	  '("\\s-*\\(\\sw+\\)\\s-*[,)]" nil nil
 	    (1 font-lock-variable-name-face)))
     ;; I like variables for FOR loops
-    '("\\<\\(for\\)\\s-+\\(\\sw+\\)\\s-*=\\s-*\
+    '("\\<\\(for\\|parfor\\)\\s-+\\(\\sw+\\)\\s-*=\\s-*\
 \\(\\([^\n,;%(]+\\|([^\n%)]+)\\)+\\)"
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face append)
@@ -1031,7 +1033,7 @@ mode.")
   '(
     ("\\(^\\|[^%]\\)\\(%[ \t].*\\|%\\)$" 2 comment)
     ("\\(^\\|[;,]\\)[ \t]*\\(\
-function\\|global\\|for\\|while\\|if\\|elseif\\|else\\|end\\(function\\)?\
+function\\|global\\|\\(par\\)?for\\|while\\|if\\|elseif\\|else\\|end\\(function\\)?\
 \\|return\\|switch\\|case\\|otherwise\\|try\\|catch\\)\\b" 2 keyword)))
 
 ;; func-menu support for matlab
@@ -1354,11 +1356,11 @@ Return nil if it is being used to dereference an array."
 (defconst matlab-defun-regex "^\\s-*function[ \t.[]"
   "Regular expression defining the beginning of a MATLAB function.")
 
-(defconst matlab-block-beg-pre-if "function\\|for\\|while\\|if\\|switch\\|try\\|tic"
+(defconst matlab-block-beg-pre-if "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
   "Keywords which mark the beginning of an indented block.
 Includes function.")
 
-(defconst matlab-block-beg-pre-no-if "for\\|while\\|if\\|switch\\|try\\|tic"
+(defconst matlab-block-beg-pre-no-if "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
   "Keywords which mark the beginning of an indented block.
 Excludes function.")
 
@@ -1447,7 +1449,7 @@ Know that `match-end' of 0 is the end of the functin name."
 ;;; Lists for matlab keywords =================================================
 
 (defvar matlab-keywords-solo
-  '("break" "case" "else" "elseif" "end" "for" "function" "if" "tic" "toc"
+  '("break" "case" "else" "elseif" "end" "for" "parfor" "function" "if" "tic" "toc"
     "otherwise" "profile" "switch" "while" "try" "catch")
   "Keywords that appear on a line by themselves.")
 (defvar matlab-keywords-return
@@ -1733,7 +1735,7 @@ Travels across continuations."
 	;; This list of keywords is NOT meant to be comprehensive.
 	(r (save-excursion
 	     (re-search-backward
-	      "^\\s-*\\(%\\|if\\|else\\(if\\)\\|while\\|for\\|$\\)\\>"
+	      "^\\s-*\\(%\\|if\\|else\\(if\\)\\|while\\|\\(par\\)?for\\|$\\)\\>"
 	      nil t))))
     (while (and (or (save-excursion (and (matlab-prev-line)
 					 (matlab-lattr-cont)))
@@ -1777,10 +1779,15 @@ Optional BEGINNING is where the command starts from."
     (looking-at "^[ \t]*$")))
 
 (defun matlab-ltype-comm ()		; comment line
-  "Return t if current line is a MATLAB comment line."
+  "Return t if current line is a MATLAB comment line.
+Return the symbol 'cellstart if it is a double %%."
   (save-excursion
     (beginning-of-line)
-    (looking-at "[ \t]*%.*$")))
+    (cond ((looking-at "[ \t]*%\\([^%]\\|$\\)")
+	   t)
+	  ((looking-at "[ \t]*%%")
+	   'cellstart)
+	  (t nil))))
 
 (defun matlab-ltype-comm-ignore ()	; comment out a region line
   "Return t if current line is a MATLAB comment region line."
@@ -1816,17 +1823,20 @@ Optional BEGINNING is where the command starts from."
   "Return column of previous line's comment start, or nil."
   (save-excursion
     (beginning-of-line)
-    (if (or (not (matlab-ltype-comm)) (bobp))
-	nil
-      ;; We use forward-line and not matlab-prev-line because
-      ;; we want blank lines to terminate this indentation method.
-      (forward-line -1)
-      (let ((col  (matlab-lattr-comm)))
-	(if col
-	    (progn
-	      (goto-char col)
-	      (current-column))
-	  nil)))))
+    (let ((commtype (matlab-ltype-comm)))
+      (if (or (eq commtype 'cellstart) ;; Cells are not continuations from previous comments.
+	      (null commtype)
+	      (bobp))
+	  nil
+	;; We use forward-line and not matlab-prev-line because
+	;; we want blank lines to terminate this indentation method.
+	(forward-line -1)
+	(let ((col  (matlab-lattr-comm)))
+	  (if col
+	      (progn
+		(goto-char col)
+		(current-column))
+	    nil))))))
 
 (defun matlab-ltype-function-definition ()
   "Return t if the current line is a function definition."
@@ -2559,7 +2569,9 @@ Argument ARG specifies how many %s to insert."
   (interactive "P")
   (self-insert-command (or arg 1))
   (when (matlab-ltype-comm)
-    (matlab-indent-line)))
+    (matlab-indent-line)
+    ;; The above seems to put the cursor on the %, not after it.
+    (skip-chars-forward "%")))
 
 
 ;;; Comment management========================================================
@@ -2652,7 +2664,7 @@ Argument BEG and END indicate the region to uncomment."
 	      (beginning-of-line)
 	      (let ((e (matlab-point-at-eol))
 		    (pf nil))
-		(while (and (re-search-forward "%[ \t]*\\($$$ \\)?" e t)
+		(while (and (re-search-forward "%+[ \t]*\\($$$ \\)?" e t)
 			    (matlab-cursor-in-string)))
 		(setq pf (match-string 0))
 		(concat (make-string (- (current-column) (length pf)) ? )
@@ -3841,7 +3853,7 @@ Optional argument FAST causes this check to be skipped."
 ;;  that did not have outputs earlier.
 ;;
 ;;  You probably don't want this as a default verify function
-(defvar matlab-quiesce-nosemi-regexp "\\s-*\\(function\\|for\\|while\\|try\\|catch\\|\
+(defvar matlab-quiesce-nosemi-regexp "\\s-*\\(function\\|parfor\\|for\\|while\\|try\\|catch\\|\
 switch\\|otherwise\\|case\\|break\\|if\\|else\\|end\\|return\\|disp\\|\
 $\\|%\\)"
   "Regular expression used to detect if a semicolon is needed at the end of a line.")
