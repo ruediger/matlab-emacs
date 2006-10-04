@@ -1,3 +1,45 @@
+2006-10-04  zappo  <zappo@ludlamelinux>
+
+	* mlint.el (mlint-output-regex):
+	Support the changed mlint output syntax
+	(mlint-symtab-line-regexp): Support changed mlint table output syntax
+	(mlint-warning-code-alist): Obsolete
+	(mlint-error-fix-alist): Obsolete
+	(mlint-error-id-fix-alist): New version of the old error-fix-alist.
+	(mlint-run): Add the "-edit" flag when highlighting crossfunction variables.
+	Updated parsing of the mlint table for highlighting cross-function variables.
+	Updated mechanism for highlighting the cross-function variables.
+	(mlint-lm-entry): Update warningid doc.
+	(mlint-warning->class, mlint-warningid->class): Name change.  Use new table of warning ids
+	instead of parsing warning strings.
+	(linemark-new-entry): Use warning id, not warning string for class determination.
+	(mlint-lm-replace-focus): new-text is no longer class allocated.
+	(mlint-lm-entry-depricated): New class rule.
+	(mlint-lm-entry-isstr, mlint-lm-entry-setstr): Deleted.
+	(mlint-lm-eval->trycatch): Commented out.  Not provided by mlint, but it
+	is cool and could be resurrected.
+	(mlint-highlight): Can't provide warningcode anymore.
+	(mlint-clear-cross-function-variable-overlays): Renamed to
+	(mlint-clear-nested-function-info-overlays): updated w/ more info.
+	(mlint-clear-cross-function-variable-highlighting)
+	(mlint-minor-mode): Use new clear function for nested function info.
+
+	* matlab.el: Make fill-paragraph work around cell headings nicely.
+	Add `matlab-shell-run-cell' for cell-mode style execution of code.
+	Change the page delimiter to include cell breaks.
+
+	Support "parfor", available in MATLAB 2006a.
+	Treat cell start comments as the start of a comment block, even if comments preceed it.
+	Make sure typing in comment chars moves cursor to the correct location.
+
+2005-12-02  zappo  <zappo@ludlamelinux>
+
+	* ChangeLog: Build and dependancies changes.
+
+	* INSTALL, README: Add info about CEDET dependancies.
+
+	* Makefile, Project.ede, matlab-load.el: Build system.
+
 2005-12-02  Eric Ludlam  <eludlam@mathworks.com>
 
 	* README, INSTALL: Refer to CEDET project for dependancies.
