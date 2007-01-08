@@ -1378,11 +1378,11 @@ Excludes function.")
   "Partial regular expression to recognize MATLAB mid-block keywords.")
 
 (defconst matlab-block-end-pre-if
-  "end\\(function\\)?\\|function\\|\\(\\sw+\\s-*=\\s-*\\)?toc"
+  "end\\(function\\)?\\|function\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
   "Partial regular expression to recognize MATLAB block-end keywords.")
 
 (defconst matlab-block-end-pre-no-if
-  "end\\|\\(\\sw+\\s-*=\\s-*\\)?toc"
+  "end\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
   "Partial regular expression to recognize MATLAB block-end keywords.")
 
 (defun matlab-block-end-pre ()
