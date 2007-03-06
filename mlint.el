@@ -106,20 +106,6 @@ This value can be automatically set by `mlint-programs'.")
   :group 'mlint
   :type 'boolean)
 
-;;;(defvar mlint-warningcode-alist
-;;;  '(
-;;;    ( "CodingStyle" . minor )
-;;;    ( "MathWorksErr" . minor )
-;;;    ( "InefficientUsage" . medium )
-;;;    ( "SuspectUsage" . medium )
-;;;    ( "DeprecatedUsage" . medium )
-;;;    ( "OldUsage" . medium )
-;;;    ( "SyntaxErr" . major )
-;;;    ( "InternalErr" . major )
-;;;    ( "moose" . major ) ;; Special waiting for better understanding.
-;;;    )
-;;;  "Associate a warning code to a warning level.")
-
 (defcustom mlint-scan-for-fixes-flag t
   "Non-nil means that we should scan mlint output for things to fix.
 Scanning using `mlint-error-fix-alist' can slow things down, and may
@@ -127,21 +113,6 @@ be cause for being turned off in a buffer."
   :group 'mlint
   :type 'boolean)
 (make-variable-buffer-local 'mlint-scan-for-fixes-flag)
-
-;;;(defvar mlint-error-fix-alist
-;;;  '(
-;;;    ( "Use \\(&&\\|||\\) instead of \\(&\\||\\) as the" . mlint-lm-entry-logicals)
-;;;    ( "is an input value that is never used" . mlint-lm-entry-unused-argument )
-;;;    ( "ISSTR is deprecated" . mlint-lm-entry-isstr )
-;;;    ( "SETSTR is deprecated" . mlint-lm-entry-setstr )
-;;;    ( "Terminate line with semicolon" . mlint-lm-quiet )
-;;;    ( "Extra semicolon is unnecessary" . mlint-lm-delete-focus )
-;;;    ( "Use TRY/CATCH instead of EVAL with 2 arguments" . mlint-lm-eval->trycatch )
-;;;    ( "STR2DOUBLE is faster than STR2NUM" . mlint-lm-str2num )
-;;;    )
-;;;  "List of regular expressions and auto-fix functions.
-;;;If the CAR of an association matches an error message then the linemark entry
-;;;created is of the class in CDR.")
 
 (defvar mlint-error-id-fix-alist
   '(
@@ -630,7 +601,9 @@ Optional argument FIELDS are the initialization arguments."
 	    (if (string= (oref e filename) (buffer-file-name))
 		(linemark-delete e)))
 	  (oref mlint-mark-group marks))
-  (font-lock-fontify-buffer))
+  (if (and (boundp 'global-font-lock-mode) global-font-lock-mode
+	   (not font-lock-mode))
+      (font-lock-fontify-buffer)))
 
 (defun mlint-clear-nested-function-info-overlays ()
   "Clear out any previous overlays with nested function information.
@@ -646,7 +619,9 @@ This includes nested-function and cross-function-variables."
 (defun mlint-clear-cross-function-variable-highlighting ()
 "Remove cross-function-variable overalys and re-fontify buffer."
   (mlint-clear-nested-function-info-overlays)
-  (font-lock-fontify-buffer))
+  (if (and (boundp 'global-font-lock-mode) global-font-lock-mode
+	   (not font-lock-mode))
+      (font-lock-fontify-buffer)))
 
 (defun mlint-buffer ()
   "Run mlint on the current buffer.
