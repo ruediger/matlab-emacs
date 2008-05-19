@@ -49,6 +49,11 @@
 	(t "unknown"))
   "Platform we are running mlint on.")
 
+(defcustom mlint-calculate-cyclic-complexity-flag nil
+  "*Non-nil means to collect cyclic complexity values."
+  :group 'mlint
+  :type 'boolean)
+
 (defun mlint-programs-set-fcn (&optional symbol value)
   "The :set function for `matlab-programs'.
 SYMBOL is the variable being set.  VALUE is the new value."
@@ -85,7 +90,7 @@ This value can be automatically set by `mlint-programs'.")
   :type '(repeat (file :tag "MLint Program: "))
   :set 'mlint-programs-set-fcn)
 
-(defcustom mlint-flags '("-all" "-id")
+(defcustom mlint-flags '("-all" "-id" "-fix")
   "*List of flags passed to mlint."
   :group 'mlint
   :type '(repeat (string :tag "Option: ")))
@@ -129,8 +134,6 @@ be cause for being turned off in a buffer."
 If the CAR of an association matches an error id then the linemark entry
 created is of the class in CDR.")
 
-  
-
 (defun mlint-column-output (string)
   "Convert the mlint column output to a cons pair.
 \(COLSTART .  COLEND).
@@ -153,9 +156,15 @@ If BUFFER is nil, use the current buffer."
             (and matlab-functions-have-end
                  matlab-highlight-cross-function-variables))
            (flags (let ((tmp (if matlab-show-mlint-warnings mlint-flags nil)))
-                    (if highlight-cross-function-variables
-                        (cons "-edit" tmp)
-                      tmp)))
+		    (setq tmp
+			  (if highlight-cross-function-variables
+			      (cons "-edit" tmp)
+			    tmp))
+		    (setq tmp
+			  (if mlint-calculate-cyclic-complexity-flag
+			      (cons "-cyc" tmp)
+			    tmp))
+		    tmp))
            (errors nil)
            (n nil)
            symtab)
