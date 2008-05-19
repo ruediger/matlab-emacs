@@ -1,5 +1,3 @@
-; Geck  305024
-
 ;;; matlab.el --- major mode for MATLAB dot-m files
 ;;
 ;; Author: Matt Wette <mwette@alumni.caltech.edu>,
@@ -9,7 +7,7 @@
 ;; Keywords: MATLAB
 ;; Version:
 
-(defconst matlab-mode-version "3.1.0"
+(defconst matlab-mode-version "3.2.0"
   "Current version of MATLAB mode.")
 
 ;;
@@ -443,6 +441,9 @@ Valid values are:
 (defvar matlab-cross-function-variable-face 'matlab-cross-function-variable-face
   "Self reference for cross-function variables.")
 
+(defvar matlab-cellbreak-face 'matlab-cellbreak-face
+  "Self reference for cellbreaks.")
+
 (defun matlab-font-lock-adjustments ()
   "Make adjustments for font lock.
 If font lock is not loaded, lay in wait."
@@ -477,6 +478,14 @@ If font lock is not loaded, lay in wait."
                        :slant  'italic)))
           "*Face to use for cross-function variables."
 	  :group 'matlab)
+	(defface matlab-cellbreak-face
+	  (list
+	   (list t
+		 (list :background (face-background font-lock-comment-face)
+		       :foreground (face-foreground font-lock-comment-face)
+		       :overline t
+		       :bold t)))
+	  "*Face to use for cellbreak %% lines.")
 	)
       
     ;; Now, lets make the unterminated string face
@@ -506,6 +515,16 @@ If font lock is not loaded, lay in wait."
 	  (t
 	   (make-face 'matlab-cross-function-variable-face)))
     (set-face-bold-p 'matlab-cross-function-variable-face t)
+
+    ;; Now make some cellbreak variable faces
+    (cond ((facep 'font-comment-face)
+	   (copy-face 'font-lock-comment-face 'matlab-cellbreak-face))
+	  (t
+	   (make-face 'matlab-cellbreak-face)))
+    (set-face-bold-p 'matlab-cellbreak-face t)
+    (condition-case nil
+	(set-face-attribute 'matlab-cellbreak-face nil :overline t)
+      (error nil))
     )
   (remove-hook 'font-lock-mode-hook 'matlab-font-lock-adjustments))
 
@@ -888,6 +907,8 @@ Customizing this variable is only useful if `regexp-opt' is available."
      (2 'underline prepend)
      (3 'underline prepend)		;the comment parts
      )
+   ;; Cell mode breaks get special treatment
+   '("^\\s-*\\(%%[^\n]*\n\\)" (1 matlab-cellbreak-face append))
    ;; Highlight cross function variables
    '(matlab-font-lock-cross-function-variables-match
      (1 matlab-cross-function-variable-face prepend))
@@ -1077,7 +1098,7 @@ Convenient editing commands are:
  \\[matlab-fill-paragraph]     - Refill the current command or comment.
  \\[matlab-complete-symbol]   - Symbol completion of matlab symbols\
 based on the local syntax.
- \\[matlat-indent-sexp] - Indent syntactic block of code.
+ \\[matlab-indent-sexp] - Indent syntactic block of code.
 
 Convenient navigation commands are:
  \\[matlab-beginning-of-command]   - Move to the beginning of a command.
