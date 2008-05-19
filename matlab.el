@@ -839,7 +839,10 @@ Argument LIMIT is the maximum distance to search."
 				 "if" "elseif" "else"
 				 "endfunction" "return" "break" "continue"
 				 "switch" "case" "otherwise" "try"
-				 "catch" "tic" "toc")
+				 "catch" "tic" "toc"
+				 ;; MCOS keywords
+				 "classdef" "properties" "methods"
+				 )
   "List of keywords for MATLAB used in highlighting.
 Customizing this variable is only useful if `regexp-opt' is available."
   :group 'matlab
@@ -1377,14 +1380,21 @@ Return nil if it is being used to dereference an array."
 ;; "-pre" means "partial regular expression"
 ;; "-if" and "-no-if" means "[no] Indent Function"
 
-(defconst matlab-defun-regex "^\\s-*function[ \t.[]"
+(defconst matlab-defun-regex "^\\(\\s-*function\\|classdef\\)[ \t.[]"
   "Regular expression defining the beginning of a MATLAB function.")
 
-(defconst matlab-block-beg-pre-if "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+(defconst matlab-mcos-regexp "\\|classdef\\|properties\\|methods"
+  "Keywords which mark the beginning of mcos blocks.")
+
+(defconst matlab-block-beg-pre-if
+  (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+	  matlab-mcos-regexp)
   "Keywords which mark the beginning of an indented block.
 Includes function.")
 
-(defconst matlab-block-beg-pre-no-if "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+(defconst matlab-block-beg-pre-no-if
+  (concat "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+	  matlab-mcos-regexp)
   "Keywords which mark the beginning of an indented block.
 Excludes function.")
 
