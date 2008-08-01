@@ -54,6 +54,14 @@
   :group 'mlint
   :type 'boolean)
 
+(defvar mlint-symtab-info nil
+  "Symbol Table collected from highlighting cross function variables.
+Each entry in the symtab is at an index indicating the line it occurs on.
+Each entry is of the form:
+  ( \"FUNCTION-NAME\" PARENT-IDX ( LINENO . COLNO ) ...)
+and ... is a list of cross-function variable usages.")
+(make-variable-buffer-local 'mlint-symtab-info)
+
 (defun mlint-programs-set-fcn (&optional symbol value)
   "The :set function for `matlab-programs'.
 SYMBOL is the variable being set.  VALUE is the new value."
@@ -167,7 +175,7 @@ If BUFFER is nil, use the current buffer."
 		    tmp))
            (errors nil)
            (n nil)
-           symtab)
+	   (symtab nil))
       (save-excursion
 	(set-buffer (get-buffer-create "*M-Lint*"))
 	(erase-buffer)
@@ -179,44 +187,45 @@ If BUFFER is nil, use the current buffer."
 	(when mlint-verbose (message "Running mlint...done"))
 	(goto-char (point-min))
         (when highlight-cross-function-variables
-          (if (not (re-search-forward mlint-output-regex nil t))
-              (goto-char (point-max)))
-          (if (re-search-backward "^ *\\([0-9]+\\)" nil t)
-              (progn
-                (goto-char (point-min))
-                (setq n (1+ (string-to-int (match-string 1))))
-                (setq symtab (make-vector n nil))
-                (while (re-search-forward mlint-symtab-line-regex nil t)
-                  (let ((name (match-string 2))
-                        (parent-index (string-to-int (match-string 3)))
-                        (column (match-string 7)))
-                    (if column ;; line defines a function
-                        (aset symtab (string-to-int (match-string 1))
-                              (list name
-                                    (/= parent-index 0) ;; t if nested
-                                    (cons (string-to-int (match-string 6))
-                                          (string-to-int column))))
-                      (let ((parent (cddr (aref symtab parent-index))))
-                        (if parent
-                            (rplacd parent (cons name (cdr parent)))))))))))
-        (if show-mlint-warnings
-            (while (re-search-forward mlint-output-regex nil t)
-              (setq errors (cons
-                            (list (string-to-int (match-string 1))
-                                  (mlint-column-output (match-string 2))
-                                  (match-string 4)
-				  ""  ; this was the warning code (level)
-                                  (match-string 3)
-                                  )
-                            errors)))))
+          (when (not (re-search-forward mlint-output-regex nil t))
+	    (goto-char (point-max)))
+          (when (re-search-backward "^ *\\([0-9]+\\)" nil t)
+	    (goto-char (point-min))
+	    (setq n (1+ (string-to-int (match-string 1))))
+	    (setq symtab (make-vector n nil))
+	    (while (re-search-forward mlint-symtab-line-regex nil t)
+	      (let ((name (match-string 2))
+		    (parent-index (string-to-int (match-string 3)))
+		    (column (match-string 7)))
+		(if column ;; line defines a function
+		    (aset symtab (string-to-int (match-string 1))
+			  (list name
+				(when (/= parent-index 0) parent-index)
+				(cons (string-to-int (match-string 6))
+				      (string-to-int column))))
+		  (let ((parent (cddr (aref symtab parent-index))))
+		    (if parent
+			(rplacd parent (cons name (cdr parent))))))))))
+        (when show-mlint-warnings
+	  (while (re-search-forward mlint-output-regex nil t)
+	    (setq errors (cons
+			  (list (string-to-int (match-string 1))
+				(mlint-column-output (match-string 2))
+				(match-string 4)
+				"" ; this was the warning code (level)
+				(match-string 3)
+				)
+			  errors))))
+	)
       (mlint-clear-nested-function-info-overlays)
+      (setq mlint-symtab-info symtab)
       (when (and highlight-cross-function-variables (integerp n))
         ;; Then set up new overlays for cross-function variables
         ;; and nested functions.
         (save-excursion
           (while (> n 0)
             (setq n (1- n))
-            (let ((entry (aref symtab n)))
+            (let ((entry (aref mlint-symtab-info n)))
               (if entry
                   (let ((where (caddr entry)))
                     (goto-line (car where))
@@ -525,64 +534,6 @@ Optional argument FIELDS are the initialization arguments."
     (matlab-end-of-command)
     (insert ";"))
   )
-
-;;; This was cool, but mlint doesn't generate this error anymore.
-;;;
-;;;(defclass mlint-lm-eval->trycatch (mlint-lm-entry)
-;;;  ((fixable-p :initform t)
-;;;   (fix-description :initform "Replace EVAL call with TRY/CATCH.")
-;;;   )
-;;;  "EVAL 2 arg form.  Transform into try/catch.")
-;;;
-;;;(defun mlint-destringafy ()
-;;;  "Move forward over one string, removing string notations."
-;;;  (unless (looking-at "'")
-;;;    (error "Not looking at a string"))
-;;;  (forward-char -1)
-;;;  (let ((s (1+ (point)))
-;;;	(e (save-excursion
-;;;	     (matlab-font-lock-string-match-normal (point-at-eol))
-;;;	     (point))))
-;;;    (goto-char e)
-;;;    (delete-char -1)
-;;;    (save-excursion
-;;;      (goto-char s)
-;;;      (delete-char 1))
-;;;    (save-excursion
-;;;      (save-restriction
-;;;	(narrow-to-region s (point))
-;;;	(goto-char (point-min))
-;;;	(while (re-search-forward "''" nil t)
-;;;	  (replace-match "'"))))))
-;;;
-;;;(defmethod mlint-fix-entry ((ent mlint-lm-eval->trycatch))
-;;;  "Add semi-colon to end of this line."
-;;;  (save-excursion
-;;;    (goto-line (oref ent line))
-;;;    (move-to-column (1- (oref ent column)))
-;;;    ;; (forward-word -1)
-;;;    (delete-region (point) (save-excursion (forward-word 1) (point)))
-;;;    (delete-horizontal-space)
-;;;    (delete-char 1)
-;;;    (insert "try")
-;;;    (matlab-indent-line)
-;;;    (matlab-return)
-;;;    (mlint-destringafy)
-;;;    (looking-at "\\s-*,\\s-*")
-;;;    (delete-region (match-beginning 0) (match-end 0))
-;;;    (matlab-return)
-;;;    (insert "catch")
-;;;    (matlab-return)
-;;;    (mlint-destringafy)
-;;;    (kill-line 1)
-;;;    (matlab-return)
-;;;    (insert "end ")
-;;;    (matlab-return)
-;;;    (forward-line -1)
-;;;    (end-of-line)
-;;;    (delete-horizontal-space)
-;;;    )
-;;;  )
 
 ;;; User functions
 ;;
