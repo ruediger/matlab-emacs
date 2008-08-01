@@ -1386,15 +1386,27 @@ Return nil if it is being used to dereference an array."
 (defconst matlab-mcos-regexp "\\|classdef\\|properties\\|methods"
   "Keywords which mark the beginning of mcos blocks.")
 
+(defcustom matlab-block-indent-tic-toc-flag nil
+  "*Non-nil means that tic,toc should indent like a if,end block.
+This variable should be set before loading matlab.el"
+  :group 'matlab
+  :type 'boolean)
+
 (defconst matlab-block-beg-pre-if
-  (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
-	  matlab-mcos-regexp)
+  (if matlab-block-indent-tic-toc-flag
+      (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+	      matlab-mcos-regexp)
+    (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try"
+	    matlab-mcos-regexp))
   "Keywords which mark the beginning of an indented block.
 Includes function.")
 
 (defconst matlab-block-beg-pre-no-if
-  (concat "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
-	  matlab-mcos-regexp)
+  (if matlab-block-indent-tic-toc-flag
+      (concat "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+	      matlab-mcos-regexp)
+    (concat "parfor\\|for\\|while\\|if\\|switch\\|try"
+	    matlab-mcos-regexp))
   "Keywords which mark the beginning of an indented block.
 Excludes function.")
 
@@ -1409,11 +1421,15 @@ Excludes function.")
   "Partial regular expression to recognize MATLAB mid-block keywords.")
 
 (defconst matlab-block-end-pre-if
-  "end\\(function\\)?\\|function\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
+  (if matlab-block-indent-tic-toc-flag
+      "end\\(function\\)?\\|function\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
+    "end\\(function\\)?\\|function")
   "Partial regular expression to recognize MATLAB block-end keywords.")
 
 (defconst matlab-block-end-pre-no-if
-  "end\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
+  (if matlab-block-indent-tic-toc-flag
+      "end"
+    "end\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc")
   "Partial regular expression to recognize MATLAB block-end keywords.")
 
 (defun matlab-block-end-pre ()
