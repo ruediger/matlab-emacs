@@ -4112,7 +4112,7 @@ This file is read to initialize the comint input ring.")
   :group 'matlab-shell
   :type 'hook)
 
-(defcustom matlab-shell-ask-MATLAB-for-completions nil
+(defcustom matlab-shell-ask-MATLAB-for-completions t
   "When Non-nil, ask MATLAB for a completion list.
 When nil, just complete file names.  (The original behavior.)
 At this time, MATLAB based completion can be slow if there are
@@ -4606,8 +4606,9 @@ Optional argument ARG describes the number of chars to delete."
   "Get a list of completions from MATLAB.
 STR is a substring to complete."
   (let* ((cmd (concat "matlabMCRprocess = com.mathworks.jmi.MatlabMCR\n"
-		     "matlabMCRprocess.mtFindAllTabCompletions('"
-		     str "'), clear('matlabMCRprocess');"))
+		      "matlabMCRprocess.mtFindAllTabCompletions('"
+		      str "'), clear('matlabMCRprocess');"))
+	 (comint-scroll-show-maximum-output nil)
 	 (output (matlab-shell-collect-command-output cmd))
 	 (completions nil))
     ;; Debug
@@ -4628,7 +4629,7 @@ STR is a substring to complete."
 (defun matlab-shell-tab ()
    "Send [TAB] to the currently running matlab process and retrieve completion."
    (interactive)
-   (if (or (not matlab-shell-ask-MATLAB-for-completions)  (matlab-cursor-in-string 'incomplete))
+   (if (not matlab-shell-ask-MATLAB-for-completions)
        (call-interactively 'comint-dynamic-complete-filename)
      (if (not (matlab-on-prompt-p))
 	 (error "Completions not available"))
@@ -4641,24 +4642,43 @@ STR is a substring to complete."
        (let ((inhibit-field-text-motion t))
 	 (beginning-of-line))
        (re-search-forward comint-prompt-regexp)
-       (let ((lastcmd (buffer-substring (point) (matlab-point-at-eol)))
-	     (completions nil))
+       (let* ((lastcmd (buffer-substring (point) (matlab-point-at-eol)))
+	      (tempcmd lastcmd)
+	      (completions nil)
+	      (limitpos nil))
+	 ;; search for character which limits completion, and limit command to it
+	 (setq limitpos
+	       (if (string-match ".*\\([( /[,;=']\\)" lastcmd)
+		   (1+ (match-beginning 1))
+		 0))
+	 (setq lastcmd (substring lastcmd limitpos))
 	 ;; Whack the old command so we can insert it back later.
-	 (delete-region (point) (matlab-point-at-eol))
+	 (delete-region (+ (point) limitpos) (matlab-point-at-eol))
+	 ;; double every single quote
+	 (while (string-match "[^']\\('\\)\\($\\|[^']\\)" tempcmd)
+	   (setq tempcmd (replace-match "''" t t tempcmd 1)))
 	 ;; collect the list
-	 (setq completions (matlab-shell-completion-list lastcmd))
-	 (if (eq (length completions) t)
+	 (setq completions (matlab-shell-completion-list tempcmd))
+	 (goto-char (point-max))
+	 (if (eq (length completions) 1)
 	     ;; If there is only one, then there is an obvious thing to do.
-	     (insert (car (car completions)))
+	     (progn
+	       (insert (car (car completions)))
+	       ;; kill completions buffer if still visible
+	       (when (get-buffer "*Completions*")
+		 (delete-windows-on "*Completions*")))
 	   (let ((try (try-completion lastcmd completions)))
 	     ;; Insert in a good completion.
 	     (cond ((or (eq try nil) (eq try t)
-			(and (stringp try) (string= try lastcmd)))
+			(and (stringp try)
+			     (string= try lastcmd)))
 		    (insert lastcmd)
 		    (with-output-to-temp-buffer "*Completions*"
-		      (display-completion-list (mapcar 'car completions))))
+		      (display-completion-list (mapcar 'car completions) lastcmd)))
 		   ((stringp try)
-		    (insert try))
+		    (insert try)
+		    (when (get-buffer "*Completions*")
+		      (delete-windows-on "*Completions*")))
 		   (t
 		    (insert lastcmd))))
 	   )))))
