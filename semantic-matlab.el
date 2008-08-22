@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.2 2008/08/22 18:22:31 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.3 2008/08/22 18:57:33 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -199,8 +199,9 @@ Return list is:
 
 (defcustom-mode-local-semantic-dependency-system-include-path
   matlab-mode semantic-matlab-dependency-system-include-path
-  (concat (file-name-as-directory semantic-matlab-root-directory)
-				  "toolbox/matlab")
+  (list
+   (concat (file-name-as-directory semantic-matlab-root-directory)
+	   "toolbox/matlab"))
   "The system include paths from MATLAB.")
 
 (defvar semantic-matlab-display-docstring t
