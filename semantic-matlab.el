@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.1 2008/05/19 19:24:04 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.2 2008/08/22 18:22:31 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,12 +36,33 @@
 (require 'semantic)
 (require 'semantic-format)
 (require 'matlab)
+(condition-case nil
+    ;; This will eventually become available.
+    (require 'semanticdb-matlab)
+  (error nil))
+
+;;; Code:
+(defvar semantic-matlab-root-directory
+  (let* ((mlab (locate-file "matlab" exec-path))
+	 (mlint mlint-program)
+	 (dir (cond (mlab
+		     (file-name-directory mlab))
+		    (mlint
+		     (file-name-directory mlint))
+		    )))
+    ;; We have a dir.  Walk up to the root of the install by two steps
+    ;; for either of these hits.
+    (file-name-directory
+     (directory-file-name
+      (file-name-directory (directory-file-name dir))))
+    )
+  "Root directory of MATLAB installation.
+Used for determining the include path.")
 
 ;; The version of this variable in MATLAB.el is not condusive to extracting
 ;; the information we need.
-;;; Code:
 (defvar semantic-matlab-match-function-re
-  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\s-*=\\|\\w+\\s-*=\\|\\)\\s-*\\(\\sw+\\)\\>"
+  "\\(^\\s-*function\\b[ \t\n.]*\\)\\(\\[[^]]+\\]\\s-*=\\|\\w+\\s-*=\\|\\)\\s-*\\(\\(\\sw\\|\\s_\\)+\\)\\>"
   "Expression to match a function start line.")
 
 ;; This function may someday be a part of matlab.el.
@@ -49,43 +70,64 @@
 (defun semantic-matlab-function-tags (&optional buffer)
   "Find all MATLAB function tags in BUFFER.
 Return argument is:
-  (START END RETURNVARS NAME ARGUMENTS)"
+  (START END RETURNVARS NAME ARGUMENTS DOCSTRING).
+Note that builtin functions from MATLAB will always return
+START=END=0 and no arguments or return values."
   (save-excursion
     (if buffer (set-buffer buffer))
     (let ((re semantic-matlab-match-function-re)
-	  start ret fn arg end
+	  start ret fn arg end doc
 	  (taglist nil)
 	  )
       (goto-char (point-min))
-      (while (re-search-forward re nil t)
-	(setq start (match-beginning 0)
-	      ret (buffer-substring-no-properties
-		   (match-beginning 2) (match-end 2))
-	      fn (buffer-substring-no-properties
-		  (match-beginning 3) (match-end 3))
-	      arg (buffer-substring-no-properties
-		   (match-end 3) (save-excursion
-				   (matlab-end-of-command)
-				   (point)))
-	      end (save-excursion
-		    (goto-char start)
-		    (if matlab-functions-have-end
-			(condition-case nil
-			    ;; If we get a failure, we should at least
-			    ;; return whatever we got so far.
-			    (matlab-forward-sexp)
-			  (error (point-max)))
-		      (matlab-end-of-defun))
-		    (point)))
-	(setq taglist
-	      (cons (list start end
-			  (split-string ret "[][,=. \t\n]+" t)
-			  fn
-			  (split-string arg "[(), \n\t.]+" t)
-			  )
-		    taglist))
-	)
-      (nreverse taglist))))
+      (if (and (string-match (format "^%s" semantic-matlab-root-directory)
+			     (buffer-file-name))
+	       (looking-at "%\\([A-Z]+\\) \\(.*\\)"))
+	  ;; This is a builtin function, ie there's no function line.
+	  ;; Hence we must use function name from the doc string.
+	  ;; FIXME
+	  ;; How can we get function arguments/return vals for builtin func's?
+	  (setq taglist
+		(cons (list 0 0 nil (downcase (match-string-no-properties 1))
+			    nil (match-string-no-properties 2)
+			    )
+		      taglist))
+	;; this is a either not builtin or a user function
+	(while (re-search-forward re nil t)
+	  (setq start (match-beginning 0)
+		ret (buffer-substring-no-properties
+		     (match-beginning 2) (match-end 2))
+		fn (buffer-substring-no-properties
+		    (match-beginning 3) (match-end 3))
+		arg (buffer-substring-no-properties
+		     (match-end 3) (save-excursion
+				     (matlab-end-of-command)
+				     (point)))
+		doc (save-excursion
+		      (forward-line)
+		      (beginning-of-line)
+		      (if (looking-at "%[A-Z]+ \\(.*\\)")
+			  (match-string-no-properties 1)
+			nil))
+		end (save-excursion
+		      (goto-char start)
+		      (if matlab-functions-have-end
+			  (condition-case nil
+			      ;; If we get a failure, we should at least
+			      ;; return whatever we got so far.
+			      (matlab-forward-sexp)
+			    (error (point-max)))
+			(matlab-end-of-defun))
+		      (point)))
+	  (setq taglist
+		(cons (list start end
+			    (split-string ret "[][,=. \t\n]+" t)
+			    fn
+			    (split-string arg "[(), \n\t.]+" t)
+			    doc
+			    )
+		      taglist))))
+	(nreverse taglist))))
 
 ;;; BEGIN PARSER
 ;;
@@ -135,6 +177,7 @@ Return list is:
 	     (ret (nth 2 tag))
 	     (name (nth 3 tag))
 	     (args (nth 4 tag))
+	     (doc (nth 5 tag))
 	     (parts (semantic-matlab-sort-raw-tags (cdr tag-list) end))
 	     (chil (car parts)))
 	(setq rest (car (cdr parts)))
@@ -142,7 +185,8 @@ Return list is:
 	      (cons (append
 		     (semantic-tag-new-function name nil args
 						:return ret
-						:subfunctions chil)
+						:subfunctions chil
+						:documentation doc)
 		     (list start end))
 		    newlist))
 	(setq tag-list rest)))
@@ -152,6 +196,36 @@ Return list is:
   matlab-mode (tag)
   "Return the list of subfunctions in TAG."
   (semantic-tag-get-attribute tag :subfunctions))
+
+(defcustom-mode-local-semantic-dependency-system-include-path
+  matlab-mode semantic-matlab-dependency-system-include-path
+  (concat (file-name-as-directory semantic-matlab-root-directory)
+				  "toolbox/matlab")
+  "The system include paths from MATLAB.")
+
+(defvar semantic-matlab-display-docstring t
+  "Flag if function documentation should be displayed after completion.")
+
+(define-mode-local-override semantic-ia-insert-tag
+  matlab-mode (tag)
+  "Insert TAG into the current buffer based on completion."
+  (insert (semantic-tag-name tag))
+  (let ((name (semantic-tag-name tag))
+	(tt (semantic-tag-class tag))
+	(args (semantic-tag-function-arguments tag))
+	(doc (semantic-tag-docstring tag)))
+    (when (and (eq tt 'function)
+	       args)
+      (insert "("))
+    (when semantic-matlab-display-docstring
+      (if (null args)
+	  (setq args "()")
+	(setq args (format "%S" args))
+	(while (string-match "\"" args)
+	  (setq args (replace-match "" t t args)))
+	(while (string-match " " args)
+	  (setq args (replace-match "," t t args))))
+      (message "%s %s : %s" name args doc))))
 
 ;;;###autoload
 (defun semantic-default-matlab-setup ()
