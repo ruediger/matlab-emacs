@@ -93,3 +93,27 @@ or
   (add-to-list 'auto-mode-alist '("\\.tlc$" . tlc-mode))
   (setq tlc-indent-function t)
 
+
+** semantic-matlab.el
+
+To use function completion in matlab-mode, add the following lines to your
+.emacs file.
+
+(eval-after-load "matlab"
+  '(require 'semantic-matlab))
+
+Additionally, you can modify the variables
+`semanticdb-matlab-include-paths' (default: ~/matlab) and
+`semantic-matlab-system-paths-include' to specify which directories
+should be included when searching for MATLAB m-files:
+
+  ;; Include the following user files
+  (setq semanticdb-matlab-include-paths
+    (list (expand-file-name "~/matlab")
+          (expand-file-name "~/someproject")))
+  ;; Include the following system files under MATLAB root directory
+  (setq semantic-matlab-system-paths-include 
+        '("toolbox/matlab/funfun" "toolbox/matlab/general"
+          "toolbox/matlab/matfun"))
+
+Note that this feature requires CEDET 1.0pre4 or newer.
