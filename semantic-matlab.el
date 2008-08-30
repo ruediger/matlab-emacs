@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.3 2008/08/22 18:57:33 zappo Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.4 2008/08/30 14:29:40 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,22 +42,31 @@
   (error nil))
 
 ;;; Code:
+(defvar semantic-matlab-system-paths-include '("toolbox/matlab/funfun" "toolbox/matlab/general")
+  "List of include paths under `semantic-matlab-root-directory'. 
+These paths will be parsed recursively by semantic.  Class and
+private directories will be omitted here.")
+
 (defvar semantic-matlab-root-directory
   (let* ((mlab (locate-file "matlab" exec-path))
-	 (mlint mlint-program)
+	 (mlint (and (boundp 'mlint-program)
+		     mlint-program))
 	 (dir (cond (mlab
 		     (file-name-directory mlab))
 		    (mlint
 		     (file-name-directory mlint))
 		    )))
-    ;; We have a dir.  Walk up to the root of the install by two steps
-    ;; for either of these hits.
-    (file-name-directory
-     (directory-file-name
-      (file-name-directory (directory-file-name dir))))
+    ;; If we have a dir, take everything until /bin as root dir.
+    (if dir
+	(progn (string-match "\\(.*\\)/bin.*" dir)
+	       (match-string 1 dir))
+      nil)
     )
-  "Root directory of MATLAB installation.
-Used for determining the include path.")
+  "Root directory of MATLAB installation.  
+Will be automatically determined by MATLAB or mlint executable.
+Use `semantic-matlab-system-paths-include' to let semantic know
+which system directories you would like to include when doing
+completions.")
 
 ;; The version of this variable in MATLAB.el is not condusive to extracting
 ;; the information we need.
@@ -199,9 +208,12 @@ Return list is:
 
 (defcustom-mode-local-semantic-dependency-system-include-path
   matlab-mode semantic-matlab-dependency-system-include-path
-  (list
-   (concat (file-name-as-directory semantic-matlab-root-directory)
-	   "toolbox/matlab"))
+  (if semantic-matlab-root-directory
+      (mapcar (lambda (cur)
+		(concat (file-name-as-directory semantic-matlab-root-directory)
+			cur))
+	      semantic-matlab-system-paths-include)
+    nil)
   "The system include paths from MATLAB.")
 
 (defvar semantic-matlab-display-docstring t
