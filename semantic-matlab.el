@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.5 2008/08/31 17:49:08 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.6 2008/08/31 21:44:25 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -219,6 +219,39 @@ Return list is:
   "Return the list of subfunctions in TAG."
   (semantic-tag-get-attribute tag :subfunctions))
 
+(define-mode-local-override semantic-format-tag-prototype matlab-mode
+  (tag &optional parent color)
+  "Return a prototype string describing tag.
+For MATLAB, we have to mark builtin functions, since we currently
+cannot derive an argument list for them."
+  (let ((class (semantic-tag-class tag))
+	(name (semantic-format-tag-name tag parent color))
+	str)
+    (if (eq class 'function)
+	(let* ((args  (semantic-tag-function-arguments tag))
+	       (argstr (semantic--format-tag-arguments args
+						       #'identity
+						       color))
+	       (builtin (semantic-tag-get-attribute tag :builtin))
+	       (doc (semantic-tag-docstring tag)))
+	  (if builtin
+	      (if color
+		  (setq builtin (semantic--format-colorize-text " [builtin] " 'keyword)
+			argstr (semantic--format-colorize-text " arguments unavailable" 'label))
+		(setq builtin " [builtin] "
+		      argstr " arguments unavailable"))
+	    (setq builtin ""))
+	  (concat name builtin "(" (if args " " "")
+		  argstr
+		  " )"))
+      (semantic-format-tag-prototype-default tag parent color))))
+
+(defun semantic-idle-summary-format-matlab-mode (tag &optional parent color)
+  "Describe TAG and display corresponding MATLAB 'lookfor' doc-string."
+  (let* ((proto (semantic-format-tag-prototype-matlab-mode tag nil color))
+	 (doc (semantic-tag-docstring tag)))
+    (concat proto " (" doc ")")))
+
 (defcustom-mode-local-semantic-dependency-system-include-path
   matlab-mode semantic-matlab-dependency-system-include-path
   (if semantic-matlab-root-directory
@@ -244,14 +277,8 @@ Return list is:
 	       args)
       (insert "("))
     (when semantic-matlab-display-docstring
-      (if (null args)
-	  (setq args "()")
-	(setq args (format "%S" args))
-	(while (string-match "\"" args)
-	  (setq args (replace-match "" t t args)))
-	(while (string-match " " args)
-	  (setq args (replace-match "," t t args))))
-      (message "%s %s : %s" name args doc))))
+      (fame-message-nolog 
+       (semantic-idle-summary-format-matlab-mode tag nil t)))))
 
 ;;;###autoload
 (defun semantic-default-matlab-setup ()
@@ -274,6 +301,8 @@ Return list is:
 	senator-step-at-start-end-tag-classes '(function)
 	semantic-stickyfunc-sticky-classes '(function)
 	)
+	(make-local-variable 'semantic-idle-summary-function)
+	(setq semantic-idle-summary-function 'semantic-idle-summary-format-matlab-mode)
   )
 
 ;; Enable this autoload once versions of matlab.el are synchronized and
