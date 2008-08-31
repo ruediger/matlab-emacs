@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.4 2008/08/30 14:29:40 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.5 2008/08/31 17:49:08 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,10 +36,7 @@
 (require 'semantic)
 (require 'semantic-format)
 (require 'matlab)
-(condition-case nil
-    ;; This will eventually become available.
-    (require 'semanticdb-matlab)
-  (error nil))
+(require 'semanticdb-matlab)
 
 ;;; Code:
 (defvar semantic-matlab-system-paths-include '("toolbox/matlab/funfun" "toolbox/matlab/general")
@@ -91,14 +88,14 @@ START=END=0 and no arguments or return values."
       (goto-char (point-min))
       (if (and (string-match (format "^%s" semantic-matlab-root-directory)
 			     (buffer-file-name))
-	       (looking-at "%\\([A-Z]+\\) \\(.*\\)"))
+	       (looking-at "%\\([A-Z0-9_]+\\)\\s-+\\(.*\\)\\s-*$"))
 	  ;; This is a builtin function, ie there's no function line.
 	  ;; Hence we must use function name from the doc string.
 	  ;; FIXME
 	  ;; How can we get function arguments/return vals for builtin func's?
 	  (setq taglist
 		(cons (list 0 0 nil (downcase (match-string-no-properties 1))
-			    nil (match-string-no-properties 2)
+			    nil (match-string-no-properties 2) t
 			    )
 		      taglist))
 	;; this is a either not builtin or a user function
@@ -115,9 +112,22 @@ START=END=0 and no arguments or return values."
 		doc (save-excursion
 		      (forward-line)
 		      (beginning-of-line)
-		      (if (looking-at "%[A-Z]+ \\(.*\\)")
-			  (match-string-no-properties 1)
-			nil))
+		      ;; snarf doc string
+		      (cond 
+		       ;; Mathworks standard
+		       ((looking-at "%[A-Z0-9_]+\\s-+\\(.*\\)\\s-*$")
+			(match-string-no-properties 1))
+		       ;; lookfor string
+		       ((looking-at "%\\s-+\\(.*\\)\\s-*$")
+			(match-string-no-properties 1))
+		       ;; otherwise simply snarf first line of
+		       ;; comments under function declaration
+		       (t
+			(re-search-forward "[^[:blank:][:cntrl:]]" nil t)
+			(backward-char)
+			(if (looking-at "%\\s-+\\(.*\\)")
+			    (match-string-no-properties 1)
+			  nil))))
 		end (save-excursion
 		      (goto-char start)
 		      (if matlab-functions-have-end
@@ -134,6 +144,7 @@ START=END=0 and no arguments or return values."
 			    fn
 			    (split-string arg "[(), \n\t.]+" t)
 			    doc
+			    nil
 			    )
 		      taglist))))
 	(nreverse taglist))))
@@ -187,6 +198,7 @@ Return list is:
 	     (name (nth 3 tag))
 	     (args (nth 4 tag))
 	     (doc (nth 5 tag))
+	     (builtin (nth 6 tag))
 	     (parts (semantic-matlab-sort-raw-tags (cdr tag-list) end))
 	     (chil (car parts)))
 	(setq rest (car (cdr parts)))
@@ -195,7 +207,8 @@ Return list is:
 		     (semantic-tag-new-function name nil args
 						:return ret
 						:subfunctions chil
-						:documentation doc)
+						:documentation doc
+						:builtin builtin)
 		     (list start end))
 		    newlist))
 	(setq tag-list rest)))
