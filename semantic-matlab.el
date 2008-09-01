@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.6 2008/08/31 21:44:25 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.7 2008/09/01 20:14:31 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -262,6 +262,10 @@ cannot derive an argument list for them."
     nil)
   "The system include paths from MATLAB.")
 
+(defvar-mode-local matlab-mode semantic-idle-summary-function
+  'semantic-idle-summary-format-matlab-mode
+  "Function to use when displaying tag information during idle time.")
+
 (defvar semantic-matlab-display-docstring t
   "Flag if function documentation should be displayed after completion.")
 
@@ -301,8 +305,6 @@ cannot derive an argument list for them."
 	senator-step-at-start-end-tag-classes '(function)
 	semantic-stickyfunc-sticky-classes '(function)
 	)
-	(make-local-variable 'semantic-idle-summary-function)
-	(setq semantic-idle-summary-function 'semantic-idle-summary-format-matlab-mode)
   )
 
 ;; Enable this autoload once versions of matlab.el are synchronized and
