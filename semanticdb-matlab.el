@@ -134,7 +134,7 @@ If not brutish, do the default action, and append the system
 database (if available.)"
   (let ((default
 	  ;; When we recurse, disable searching of system databases
-	  ;; so that our ELisp database only shows up once when
+	  ;; so that our MATLAB database only shows up once when
 	  ;; we append it in this iteration.
 	  (let ((semanticdb-search-system-databases nil)
 		)
@@ -157,15 +157,17 @@ database (if available.)"
 
 
 (defvar semanticdb-matlab-system-files-cache '(nil)
-  "Internal cache for M files in
-  `semantic-matlab-system-paths-include' under MATLAB root
-  directory. Users can reset this cache using
-  `semanticdb-matlab-reset-files-cache'")
+  "Internal cache for system M files.
+This variable caches all M files in the directories listed in
+`semantic-matlab-system-paths-include' under MATLAB root
+directory.  Users can reset this cache using
+`semanticdb-matlab-reset-files-cache'")
 
 (defvar semanticdb-matlab-user-files-cache '(nil)
   "Internal cache for user M files.
-Users can reset this cache using
-`semanticdb-matlab-reset-files-cache'.")
+This variable caches all M files in the directories listed in
+`semanticdb-matlab-include-paths'.  Users can reset this cache
+using `semanticdb-matlab-reset-files-cache'.")
 
 (defun semanticdb-matlab-reset-files-cache ()
   "Reset semanticdb-matlab file cache."
@@ -174,9 +176,10 @@ Users can reset this cache using
   (setq semanticdb-matlab-system-files-cache '(nil)))
 
 (defun semanticdb-matlab-possibly-add-buffer-to-cache ()
-  "Add current buffer file name to
-  `semanticdb-matlab-user-files-cache' if not already
-  there. Meant to be called in local `after-save-hook'."
+  "Add current buffer file name to cache.
+This function will add the current buffer file name to
+`semanticdb-matlab-user-files-cache' if not already there.  Meant
+to be called in local `after-save-hook'."
   (unless (and semanticdb-matlab-user-files-cache
 	       (member (buffer-file-name)
 		       (cdr semanticdb-matlab-user-files-cache)))
@@ -197,9 +200,9 @@ Users can reset this cache using
 (defun semanticdb-matlab-scan-directories
   (dirs &optional recursive exclude-classes exclude-private)
   "Get list of all m-files in DIRS.
-DIRS is a list of directories. If RECURSIVE, every subdirectory
-will be included in the search. If EXCLUDE-CLASSES, class
-directories (beginning with '@') will be skipped. If
+DIRS is a list of directories.  If RECURSIVE, every subdirectory
+will be included in the search.  If EXCLUDE-CLASSES, class
+directories (beginning with '@') will be skipped.  If
 EXCLUDE-PRIVATE, 'private' directories will be skipped."
   (if dirs
       (let (files)
