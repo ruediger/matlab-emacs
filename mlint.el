@@ -37,7 +37,7 @@
   (cond ((eq system-type 'darwin)
 	 "mac")
 	((eq system-type 'gnu/linux)
-	 (cond ((eq system-configuration "x86_64-unknown-linux-gnu")
+	 (cond ((string-match "64\\|i686" system-configuration)
 		"glnxa64")
 	       (t "glnx86")))
 	((eq system-type 'solaris)
@@ -98,7 +98,7 @@ This value can be automatically set by `mlint-programs'.")
   :type '(repeat (file :tag "MLint Program: "))
   :set 'mlint-programs-set-fcn)
 
-(defcustom mlint-flags '("-all" "-id" "-fix")
+(defcustom mlint-flags '("-all" "-id") ; "-fix") % Need to support this output
   "*List of flags passed to mlint."
   :group 'mlint
   :type '(repeat (string :tag "Option: ")))
