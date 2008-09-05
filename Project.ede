@@ -18,7 +18,14 @@
     :name "lisp"
     :path ""
     :source '("matlab.el" "mlint.el" "tlc.el")
+    :versionsource '("matlab.el")
     :aux-packages '("eieio")
+    )
+   (ede-proj-target-elisp "cedet"
+    :name "cedet"
+    :path ""
+    :source '("semantic-matlab.el" "semanticdb-matlab.el")
+    :aux-packages '("semantic")
     )
    )
   )
