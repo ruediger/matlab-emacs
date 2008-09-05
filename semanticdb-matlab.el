@@ -282,7 +282,17 @@ MATLAB, this will currently always return 'variable and also
   ((table semanticdb-table-matlab) name &optional tags)
   "Find all tags named NAME in TABLE.
 Return a list of tags."
-  (if tags (call-next-method)
+  (cond
+   ;; If we have tags, go up.
+   (tags (call-next-method))
+   ;; If MATLAB shell is active, use it.
+   ((matlab-shell-active-p)
+    (let ((where (matlab-shell-which-fcn name)))
+      (list
+       (car (semanticdb-file-stream (car where)))
+       )))
+   ;; Use a home-made database.
+   (t
     (let ((files (semanticdb-matlab-find-name name)))
       (delq nil
 	    (mapcar '(lambda (x)
@@ -290,7 +300,7 @@ Return a list of tags."
 		       ;; interested in subfunctions of a file
 		       (let ((matlab-vers-on-startup nil))
 			 (car (semanticdb-file-stream x))))
-		    files)))))
+		    files))))))
 
 (defmethod semanticdb-find-tags-by-name-regexp-method
   ((table semanticdb-table-matlab) regex &optional tags)
