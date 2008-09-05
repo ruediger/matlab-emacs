@@ -346,7 +346,8 @@ point, but it will be restored for them."
   :group 'matlab
   :type 'integer)
 
-(defcustom matlab-vers-on-startup t
+;; It is time to disable this.
+(defcustom matlab-vers-on-startup nil
   "*If non-nil, show the version number on startup."
   :group 'matlab
   :type 'boolean)
@@ -1091,6 +1092,9 @@ function\\|global\\|\\(par\\)?for\\|while\\|if\\|elseif\\|else\\|end\\(function\
 ;;; MATLAB mode entry point ==================================================
 
 ;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.m$" . matlab-mode))
+
+;;;###autoload
 (defun matlab-mode ()
   "MATLAB-mode is a major mode for editing MATLAB dot-m files.
 \\<matlab-mode-map>
@@ -1428,8 +1432,8 @@ Excludes function.")
 
 (defconst matlab-block-end-pre-no-if
   (if matlab-block-indent-tic-toc-flag
-      "end"
-    "end\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc")
+      "end\\|\\(\\sw+\\s-*\\((.*)\\)?\\s-*=\\s-*\\)?toc"
+    "end")
   "Partial regular expression to recognize MATLAB block-end keywords.")
 
 (defun matlab-block-end-pre ()
