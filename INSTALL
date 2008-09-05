@@ -1,8 +1,5 @@
 Installation:
 
-Note: These install instructions were originally from matlab.el and need some
-      revising.
-
 ** DEPENDANCIES
 
 This matlab-emacs build system now requires the CEDET suite.
@@ -25,8 +22,19 @@ It is possible to use matlab.el, and associated programs without this
 extra package.  To do so, install and compile only those lisp files
 you need.
 
+** FULL INSTALL
+
+To install all the Emacs tools for MATLAB, add this to your .emacs file:
+
+  (add-to-path "~/path/to/matlab.el")
+  (require 'matlab-load)
 
 ** matlab.el:
+
+If you want to only use matlab.el for editing your code, and do not
+want to try the other tools, you can do that also, though the install
+code you need is more complex:
+
 
 Put the this file as "matlab.el" somewhere on your load path, then
 add this to your .emacs or site-init.el file:
@@ -61,31 +69,10 @@ This package will optionally use custom, shell, and gud.
 This package supports language specific extensions in imenu, func-menu,
      speedbar, font-lock, and hilit19.
 
-
-
-** mlint.el
-
-To use mlint with matlab-mode, add the following lines to your .emacs
-file.
-
-(autoload 'mlint-minor-mode "mlint" nil t)
-(add-hook 'matlab-mode-hook (lambda () (mlint-minor-mode 1)))
-
-This requires Emacs version 21.x or later or XEmacs version 21.x or later.
-This requires mlint, a part of MATLAB 7.0 (R14)
-This requires matlab.el
-This requires eieio version 0.18 or later.
-     EIEIO 0.17 will work and has poor color choice which can be customized.
-     EIEIO 0.17 is currently an XEmacs package eieio-1.03 or newer
-           OR XEmacs sumo package Sept. 2002 or newer.
-     Newer versions of EIEIO are a part of CEDET.  See:
-	   http://cedet.sf.net/eieio.shtml
-
-
 ** tlc.el
 
-To use this mode, put the this file into your load path, and add
-the following to your .emacs file:
+To use this mode without using the full instatll, put the this file
+into your load path, and add the following to your .emacs file:
 
   (require 'tlc)
 or
@@ -94,26 +81,7 @@ or
   (setq tlc-indent-function t)
 
 
-** semantic-matlab.el
+** semantic-matlab.el, semanticdb-matlab.el
 
-To use function completion in matlab-mode, add the following lines to your
-.emacs file.
-
-(eval-after-load "matlab"
-  '(require 'semantic-matlab))
-
-Additionally, you can modify the variables
-`semanticdb-matlab-include-paths' (default: ~/matlab) and
-`semantic-matlab-system-paths-include' to specify which directories
-should be included when searching for MATLAB m-files:
-
-  ;; Include the following user files
-  (setq semanticdb-matlab-include-paths
-    (list (expand-file-name "~/matlab")
-          (expand-file-name "~/someproject")))
-  ;; Include the following system files under MATLAB root directory
-  (setq semantic-matlab-system-paths-include 
-        '("toolbox/matlab/funfun" "toolbox/matlab/general"
-          "toolbox/matlab/matfun"))
 
 Note that this feature requires CEDET 1.0pre4 or newer.
