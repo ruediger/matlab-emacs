@@ -4609,26 +4609,61 @@ Optional argument ARG describes the number of chars to delete."
 (defun matlab-shell-completion-list (str)
   "Get a list of completions from MATLAB.
 STR is a substring to complete."
-  (let* ((cmd (concat "matlabMCRprocess = com.mathworks.jmi.MatlabMCR\n"
-		      "matlabMCRprocess.mtFindAllTabCompletions('"
-		      str "'), clear('matlabMCRprocess');"))
-	 (comint-scroll-show-maximum-output nil)
-	 (output (matlab-shell-collect-command-output cmd))
-	 (completions nil))
-    ;; Debug
-    (string-match "ans =" output)
-    (setq output (substring output (match-end 0)))
-    ;; Parse the output string.
-    (while (string-match "'" output)
-      ;; Hack off the preceeding quote
+  (save-excursion
+    (let* ((msbn (matlab-shell-buffer-barf-not-running))
+	   (cmd (concat "matlabMCRprocess = com.mathworks.jmi.MatlabMCR\n"
+			"matlabMCRprocess.mtFindAllTabCompletions('"
+			str "'), clear('matlabMCRprocess');"))
+	   (comint-scroll-show-maximum-output nil)
+	   output
+	   (completions nil))
+      (set-buffer msbn)
+      (if (not (matlab-on-prompt-p))
+	  (error "MATLAB shell must be non-busy to do that"))
+      (setq output (matlab-shell-collect-command-output cmd))
+      ;; Debug
+      (string-match "ans =" output)
       (setq output (substring output (match-end 0)))
-      (string-match "'" output)
-      ;; we are making a completion list, so that is a list of lists.
-      (setq completions (cons (list (substring output 0 (match-beginning 0)))
-			      completions)
-	    output (substring output (match-end 0))))
-    ;; Return them
-    (nreverse completions)))
+      ;; Parse the output string.
+      (while (string-match "'" output)
+	;; Hack off the preceeding quote
+	(setq output (substring output (match-end 0)))
+	(string-match "'" output)
+	;; we are making a completion list, so that is a list of lists.
+	(setq completions (cons (list (substring output 0 (match-beginning 0)))
+				completions)
+	      output (substring output (match-end 0))))
+      ;; Return them
+      (nreverse completions))))
+
+(defun matlab-shell-which-fcn (fcn)
+  "Get the location of FCN's M file.
+Returns an alist: ( LOCATION . BUILTINFLAG )
+LOCATION is a string indicating where it is, and BUILTINFLAG is
+non-nil if FCN is a builtin."
+  (save-excursion
+    (let* ((msbn (matlab-shell-buffer-barf-not-running))
+	   (cmd (concat "which " fcn))
+	   (comint-scroll-show-maximum-output nil)
+	   output
+	   builtin
+	   )
+      (set-buffer msbn)
+      (if (not (matlab-on-prompt-p))
+	  (error "MATLAB shell must be non-busy to do that"))
+      (setq output (matlab-shell-collect-command-output cmd))
+      ;; BUILT-IN
+      (cond
+       ((string-match "built-in (\\([^)]+\\))" output)
+	(cons (substring output (match-beginning 1) (match-end 1))
+	      t))
+       ;; Error
+       ((string-match "not found" output)
+	nil)
+       ;; JUST AN M FILE
+       (t
+	(string-match "$" output)
+	(cons (substring output 0 (match-beginning 0)) nil))))))
 
 (defun matlab-shell-tab ()
    "Send [TAB] to the currently running matlab process and retrieve completion."
