@@ -287,10 +287,23 @@ Return a list of tags."
    (tags (call-next-method))
    ;; If MATLAB shell is active, use it.
    ((matlab-shell-active-p)
-    (let ((where (matlab-shell-which-fcn name)))
-      (list
-       (car (semanticdb-file-stream (car where)))
-       )))
+    (let* ((where (matlab-shell-which-fcn name))
+	   (match 
+	    (progn
+	      (when (and where
+			 (not (file-exists-p (car where)))
+			 ;; Sometimes MATLAB builtin functions lie.
+			 (string-match "@" (car where)))
+		(setq where 
+		      (list
+		       (concat 
+			(substring (car where) 0 (match-beginning 0))
+			name ".m"))))
+	      ;; Now do the lookup.
+	      (car (semanticdb-file-stream (car where))))
+	    ))
+      (when match
+	(list match))))
    ;; Use a home-made database.
    (t
     (let ((files (semanticdb-matlab-find-name name)))
@@ -320,13 +333,26 @@ Return a list of tags."
   "In TABLE, find all occurances of tags matching PREFIX.
 Optional argument TAGS is a list of tags to search.
 Returns a table of all matching tags."
-  (if tags (call-next-method)
+  (cond
+   ;; If we have tags, go up.
+   (tags (call-next-method))
+   ;; If MATLAB shell is active, use it.
+   ((matlab-shell-active-p)
+    (let ((comp (matlab-shell-completion-list prefix)))
+      (delq nil
+	    (mapcar '(lambda (x)
+		       (car (semanticdb-find-tags-by-name-method
+			     table (car x)))
+		       )
+		    comp))))
+   ;; Use a home-made database.
+   (t
     (let ((files (semanticdb-matlab-find-name prefix 'prefix)))
       (delq nil
 	    (mapcar '(lambda (x)
 		       (let ((matlab-vers-on-startup nil))
 			 (car (semanticdb-file-stream x))))
-		    files)))))
+		    files))))))
 
 
 (provide 'semanticdb-matlab)
