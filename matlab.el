@@ -4655,7 +4655,8 @@ non-nil if FCN is a builtin."
       ;; BUILT-IN
       (cond
        ((string-match "built-in (\\([^)]+\\))" output)
-	(cons (substring output (match-beginning 1) (match-end 1))
+	(cons (concat (substring output (match-beginning 1) (match-end 1))
+		      ".m")
 	      t))
        ;; Error
        ((string-match "not found" output)
@@ -4664,6 +4665,31 @@ non-nil if FCN is a builtin."
        (t
 	(string-match "$" output)
 	(cons (substring output 0 (match-beginning 0)) nil))))))
+
+(defun matlab-shell-matlabroot ()
+  "Get the location of of this shell's root.
+Returns a string path to the root of the executing MATLAB."
+  (save-excursion
+    (let* ((msbn (matlab-shell-buffer-barf-not-running))
+	   (cmd "disp(matlabroot)")
+	   (comint-scroll-show-maximum-output nil)
+	   output
+	   builtin
+	   )
+      (set-buffer msbn)
+
+      (if (and (boundp 'matlab-shell-matlabroot-run)
+	       matlab-shell-matlabroot-run)
+	  matlab-shell-matlabroot-run
+	;; If we haven't cache'd it, calculate it now.
+
+	(if (not (matlab-on-prompt-p))
+	    (error "MATLAB shell must be non-busy to do that"))
+	(setq output (matlab-shell-collect-command-output cmd))
+	
+	(string-match "$" output)
+	(substring output 0 (match-beginning 0))))))
+
 
 (defun matlab-shell-tab ()
    "Send [TAB] to the currently running matlab process and retrieve completion."
@@ -5011,13 +5037,14 @@ indication that it ran."
       (setq pos (point))
       (comint-send-string (get-buffer-process (current-buffer))
 			  (concat command "\n"))
-      (message "MATLAB ... Executing command.")
+      ;;(message "MATLAB ... Executing command.")
       (goto-char (point-max))
       (while (or (>= (+ pos (string-width command)) (point)) (not (matlab-on-empty-prompt-p)))
 	(accept-process-output (get-buffer-process (current-buffer)))
 	(goto-char (point-max))
-	(message "MATLAB reading..."))
-      (message "MATLAB reading...done")
+	;;(message "MATLAB reading...")
+	)
+      ;;(message "MATLAB reading...done")
       (save-excursion
 	(goto-char pos)
 	(beginning-of-line)
