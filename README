@@ -2,26 +2,38 @@ matlab-emacs Project:
 
 MATLAB and Emacs integration
 
+* INSTALL
 
+  Add the following to your .emacs file:
+
+  (add-to-path "~/path/to/matlab.el")
+  (require 'matlab-load)
 
 * Finding Updates
 
 ** Releases
 
-   The latest stable version of matlab.el can be found on MATLAB Central:
+   The most recent version of matlab.el is always in CVS.
+
+   The last stabilized version of matlab.el can be found on MATLAB Central:
 
    Category:
    http://www.mathworks.com/matlabcentral/fileexchange/loadCategory.do?objectId=19&objectType=Category
    This File
    http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=104&objectType=file
 
-   Older versions of matlab.el can be found in as matlab.el.1.10.1
+   Older versions of matlab.el can be found as matlab.el.1.10.1
    for emacsen that do not have the latest additional utilities such
    as tempo and derived.
 
-   matlab.el is now shipping on MATLAB CDs starting with 6.5 (R13).
-   Updates after a release of MATLAB will be made to MATLAB Central
-   and announced on the mailing list.
+   matlab.el and mlint.el has shipped on MATLAB CDs starting with 6.5
+   (R13).  Updates after a release of MATLAB will be made to MATLAB
+   Central and announced on the mailing list.
+
+   matlab.el and mlint.el will no longer ship on MATLAB CDs starting
+   with MATLAB release R2008b.  If you are using a version of MATLAB
+   from before R2008a, you will want to use the version of mlint from
+   that CD.
 
 ** CVS
 
@@ -39,8 +51,13 @@ MATLAB and Emacs integration
 ** Dependancies
 
    MATLAB-Emacs now requires the CEDET suite for the following items:
-	- Build system (Makefiles, etc)
+	- Modifying the build system (Makefiles, etc)
 	- mlint (uses EIEIO object system)
+	- parsing/completion (uses semantic parsing system)
+
+   See http://cedet.sf.net for downloading CEDET.
+
+   If you only want to use matlab.el for editing code, you DO NOT need to install CEDET.
 
 * Mailing List:
 
