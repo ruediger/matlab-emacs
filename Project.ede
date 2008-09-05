@@ -25,7 +25,7 @@
     :name "cedet"
     :path ""
     :source '("semantic-matlab.el" "semanticdb-matlab.el")
-    :aux-packages '("semantic")
+    :aux-packages '("semantic" "semantic-el")
     )
    )
   )
