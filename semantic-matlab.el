@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.7 2008/09/01 20:14:31 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.8 2008/09/05 20:18:00 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -65,6 +65,12 @@ Use `semantic-matlab-system-paths-include' to let semantic know
 which system directories you would like to include when doing
 completions.")
 
+(defun semantic-matlab-root-directory ()
+  "Calculate the current MATLAB root directory."
+  (if (matlab-shell-active-p)
+      (matlab-shell-matlabroot)
+    semantic-matlab-root-directory))
+
 ;; The version of this variable in MATLAB.el is not condusive to extracting
 ;; the information we need.
 (defvar semantic-matlab-match-function-re
@@ -86,7 +92,7 @@ START=END=0 and no arguments or return values."
 	  (taglist nil)
 	  )
       (goto-char (point-min))
-      (if (and (string-match (format "^%s" semantic-matlab-root-directory)
+      (if (and (string-match (format "^%s" (semantic-matlab-root-directory))
 			     (buffer-file-name))
 	       (looking-at "%\\([A-Z0-9_]+\\)\\s-+\\(.*\\)\\s-*$"))
 	  ;; This is a builtin function, ie there's no function line.
@@ -113,7 +119,7 @@ START=END=0 and no arguments or return values."
 		      (forward-line)
 		      (beginning-of-line)
 		      ;; snarf doc string
-		      (cond 
+		      (cond
 		       ;; Mathworks standard
 		       ((looking-at "%[A-Z0-9_]+\\s-+\\(.*\\)\\s-*$")
 			(match-string-no-properties 1))
