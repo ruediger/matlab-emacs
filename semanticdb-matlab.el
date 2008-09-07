@@ -169,6 +169,9 @@ This variable caches all M files in the directories listed in
 `semanticdb-matlab-include-paths'.  Users can reset this cache
 using `semanticdb-matlab-reset-files-cache'.")
 
+(defvar semanticdb-matlab-user-class-cache nil
+  "Internal cache for user classes.")
+
 (defun semanticdb-matlab-reset-files-cache ()
   "Reset semanticdb-matlab file cache."
   (interactive)
@@ -229,28 +232,33 @@ EXCLUDE-PRIVATE, 'private' directories will be skipped."
 	files)
     nil))
 
-
-(defun semanticdb-matlab-find-name (name &optional type)
-  "Find NAME in matlab file names.
-If TYPE is 'regex, NAME is a regular expression.
-If TYPE is 'prefix, NAME is a prefix."
+(defun semanticdb-matlab-cache-files ()
+  "Cache user and system MATLAB files if necessary."
   ;; car of *-file-cache variables is used as flag
   (unless (car semanticdb-matlab-system-files-cache)
     (working-status-forms
-     "Searching user MATLAB files" "done"
+     "Searching system MATLAB files" "done"
      (setq semanticdb-matlab-system-files-cache
 	   (cons t
 		 (semanticdb-matlab-scan-directories
 		  semantic-matlab-dependency-system-include-path t t t)))))
   (unless (car semanticdb-matlab-user-files-cache)
     (working-status-forms
-     "Searching system MATLAB files" "done"
+     "Searching user MATLAB files" "done"
      (setq semanticdb-matlab-user-files-cache
 	   (cons t
-		 ;; there may be already files from the after-save-hook
-		 (append (cdr semanticdb-matlab-user-files-cache)
-			 (semanticdb-matlab-scan-directories
-			  semanticdb-matlab-include-paths t nil nil))))))
+		 (semanticdb-matlab-scan-directories
+		  semanticdb-matlab-include-paths t nil nil))))
+    ;; cache user defined old-style classes
+    (setq semanticdb-matlab-user-class-cache
+	  (semantic-matlab-find-oldstyle-classes
+	   (cdr semanticdb-matlab-user-files-cache)))))
+
+(defun semanticdb-matlab-find-name (name &optional type)
+  "Find NAME in matlab file names.
+If TYPE is 'regex, NAME is a regular expression.
+If TYPE is 'prefix, NAME is a prefix."
+  (semanticdb-matlab-cache-files)
   (let ((files (append (cdr semanticdb-matlab-system-files-cache)
 		       (cdr semanticdb-matlab-user-files-cache)))
 	regexp results)
@@ -269,12 +277,20 @@ If TYPE is 'prefix, NAME is a prefix."
 (define-mode-local-override semantic-ctxt-current-class-list
   matlab-mode (point)
   "Return a list of tag classes that are allowed at point.
-If point is nil, the current buffer location is used.  For
-MATLAB, this will currently always return 'variable and also
-'function if point is not left of an assignment."
-  (if (looking-at ".+=")
-      '(variable)
-    '(function variable)))
+If point is nil, the current buffer location is used."
+  (cond
+   ((looking-at ".+=")
+    '(variable type))
+   ((looking-back "\\(get\\|set\\)([a-zA-Z_0-9]*")
+    '(variable type))
+   ((looking-back "\\(get\\|set\\)([a-zA-Z_0-9]+,'[a-zA-Z_0-9]*")
+    '(variable))
+   ((looking-back "\\.[a-zA-Z_0-9]*")
+    '(variable))
+   ((looking-at "\\s-*([a-zA-Z_0-9]+,")
+    '(function))
+   (t
+    '(function variable type))))
 
 ;; Search functions
 
@@ -288,15 +304,15 @@ Return a list of tags."
    ;; If MATLAB shell is active, use it.
    ((matlab-shell-active-p)
     (let* ((where (matlab-shell-which-fcn name))
-	   (match 
+	   (match
 	    (progn
 	      (when (and where
 			 (not (file-exists-p (car where)))
 			 ;; Sometimes MATLAB builtin functions lie.
 			 (string-match "@" (car where)))
-		(setq where 
+		(setq where
 		      (list
-		       (concat 
+		       (concat
 			(substring (car where) 0 (match-beginning 0))
 			name ".m"))))
 	      ;; Now do the lookup.
