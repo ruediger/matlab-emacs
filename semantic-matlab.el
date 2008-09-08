@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.10 2008/09/07 16:28:39 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.11 2008/09/08 11:07:23 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -317,11 +317,15 @@ it reaches a function declaration or the beginning of the buffer.
 It returns a list of variable assignments (NAME TYPE ATTRIBUTES),
 where NAME is unique."
   (let ((limit (or (save-excursion
-		     (re-search-backward semantic-matlab-match-function-re nil t)
-		     (forward-line 1)
-		     (point))
+		     (if (re-search-backward semantic-matlab-match-function-re nil t)
+			 (progn
+			   (forward-line 1)
+			   (point))
+		       nil))
 		   (point-min)))
 	vars)
+    ;; don't parse current line
+    (beginning-of-line)
     (while (re-search-backward (concat "^\\(" (regexp-quote semantic-matlab-type-hint-string)
 				       "\\)?\\([^%]*[^=><~]\\)=\\([^=].*\\)$") limit t)
       (let ((left (match-string-no-properties 2))
@@ -351,9 +355,15 @@ where NAME is unique."
 	;; remove bracket expressions on the left-hand side
 	(while (string-match "\\((.*)\\|{.*}\\)" left)
 	  (setq left (replace-match "" t t left)))
-	;; reduce right-hand side to first symbol
-	(when (string-match "[[({ ]*\\([A-Za-z_0-9]*\\)" right)
+	;; deal with right-hand side
+	(cond
+	 ;; special case: class=set(class,attribute,value)
+	 ((string-match "\\s-*set(\\([A-Za-z_0-9 ]+\\)," right)
 	  (setq right (match-string 1 right)))
+	;; otherwise reduce right-hand side to first symbol
+	(t 
+	 (string-match "[[({ ]*\\([A-Za-z_0-9]*\\)" right)
+	 (setq right (match-string 1 right))))
 	(cond
 	 ;; multiple assignment, e.g. [a,b]=size(A);
 	 ((string-match "\\[\\(.*\\)\\]" left)
@@ -389,7 +399,8 @@ where NAME is unique."
 	  ;; default is double
 	  (string-match "\\([A-Za-z_0-9]+\\)\\s-*$" left)
 	  (setq left (match-string 1 left))
-	  (unless (assoc left vars)
+	  (unless (or (assoc left vars)
+		      (string= left right)) ; self assignment
 	    (push `(,left "double" ,right) vars)))
 	 )))
     vars))
