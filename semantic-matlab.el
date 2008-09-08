@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.12 2008/09/08 11:59:18 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.13 2008/09/08 14:40:56 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -544,22 +544,25 @@ This will include a list of type/field names when applicable."
 	(when point (goto-char point))
 	;; go to beginning of symbol
 	(skip-syntax-backward "w_")
-	(setq sym (progn (looking-at "[a-zA-Z_0-9]*")
-			 (match-string-no-properties 0)))
-	(cond
-	 ;; method call: var = method(class,args)
-	 ((progn
-	    (and (looking-back "[^=><~]=\\s-*")
-		 (looking-at "[a-zA-Z_0-9]*\\s-*(\\([a-zA-Z_0-9]+\\),?")))
-	  (list (match-string-no-properties 1) sym))
-	 ;; class properties: var = get(class,'attribute')
-	 ((looking-back "\\(get\\|set\\)(\\s-*\\([a-zA-Z_0-9]+\\),'")
-	  (list (match-string-no-properties 2) sym))
-	 ;; (nested) structures or new-style classes
-	 ((looking-back "[^A-Za-z_0-9.]\\([A-Za-z_0-9.]+\\)\\.")
-	  (list (match-string-no-properties 1) sym))
-	 (t
-	  (list sym)))))))
+	(setq sym (if (looking-at "[a-zA-Z_0-9]+")
+		      (match-string-no-properties 0)
+		    nil))
+	(if sym
+	    (cond
+	     ;; method call: var = method(class,args)
+	     ((progn
+		(and (looking-back "[^=><~]=\\s-*")
+		     (looking-at "[a-zA-Z_0-9]*\\s-*(\\([a-zA-Z_0-9]+\\),?")))
+	      (list (match-string-no-properties 1) sym))
+	     ;; class properties: var = get(class,'attribute')
+	     ((looking-back "\\(get\\|set\\)(\\s-*\\([a-zA-Z_0-9]+\\),'")
+	      (list (match-string-no-properties 2) sym))
+	     ;; (nested) structures or new-style classes
+	     ((looking-back "[^A-Za-z_0-9.]\\([A-Za-z_0-9.]+\\)\\.")
+	      (list (match-string-no-properties 1) sym))
+	     (t
+	      (list sym)))
+	  nil)))))
 
  (define-mode-local-override semantic-ctxt-current-symbol-and-bounds
    matlab-mode (&optional point)
@@ -569,15 +572,17 @@ This will include a list of type/field names when applicable."
    (let ((sym (semantic-ctxt-current-symbol-matlab-mode point))
 	 bounds endsym)
      (save-excursion
-	(when point (goto-char point))
-	;; go to beginning of symbol
-	(skip-syntax-backward "w_")
-	(setq endsym (progn (looking-at "[a-zA-Z_0-9]*")
-			    (match-string-no-properties 0)))
-	(setq bounds (cons
-		      (match-beginning 0)
-		      (match-end 0))))
-     (list sym endsym bounds)))
+       (when point (goto-char point))
+       (when sym
+	 ;; go to beginning of symbol
+	 (skip-syntax-backward "w_")
+	 (setq endsym (progn (looking-at "[a-zA-Z_0-9]+")
+			     (match-string-no-properties 0)))
+	 (setq bounds (cons
+		       (match-beginning 0)
+		       (match-end 0)))
+	 (list sym endsym bounds)))))
+
 
 ;;;###autoload
 (defun semantic-default-matlab-setup ()
