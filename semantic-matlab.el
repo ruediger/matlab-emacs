@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.11 2008/09/08 11:07:23 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.12 2008/09/08 11:59:18 davenar Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -352,13 +352,19 @@ where NAME is unique."
 				 (regexp-quote matlab-elipsis-string) "\\s-*$"))))
 	    (setq left
 		  (concat (match-string-no-properties 1) left))))
-	;; remove bracket expressions on the left-hand side
-	(while (string-match "\\((.*)\\|{.*}\\)" left)
+	;; remove bracket expressions and beginning/trailing whitespaces on left-hand side
+	(while (or (string-match "\\((.*)\\|{.*}\\)" left)
+		   (string-match "^\\(\\s-+\\)" left)
+		   (string-match "\\(\\s-+\\)$" left))
 	  (setq left (replace-match "" t t left)))
 	;; deal with right-hand side
 	(cond
-	 ;; special case: class=set(class,attribute,value)
-	 ((string-match "\\s-*set(\\([A-Za-z_0-9 ]+\\)," right)
+	 ;; special case: a = set(class,attribute,value)
+	 ((string-match "\\s-*set(\\s-*\\([A-Za-z_0-9 ]+\\)\\s-*," right)
+	  (setq right (match-string 1 right)))
+	 ;; method call which returns same class: class=method(class [,args])
+	 ((and (string-match "\\s-*[A-Za-z_0-9 ]+\\s-*(\\s-*\\([A-Za-z_0-9 ]+\\)\\s-*\\(,\\|)\\)" right)
+	       (string= left (match-string 1 right)))
 	  (setq right (match-string 1 right)))
 	;; otherwise reduce right-hand side to first symbol
 	(t 
