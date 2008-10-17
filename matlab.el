@@ -842,7 +842,7 @@ Argument LIMIT is the maximum distance to search."
 				 "switch" "case" "otherwise" "try"
 				 "catch" "tic" "toc"
 				 ;; MCOS keywords
-				 "classdef" "properties" "methods"
+				 "classdef" "properties" "methods" "enumeration"
 				 )
   "List of keywords for MATLAB used in highlighting.
 Customizing this variable is only useful if `regexp-opt' is available."
@@ -1387,7 +1387,7 @@ Return nil if it is being used to dereference an array."
 (defconst matlab-defun-regex "^\\(\\s-*function\\|classdef\\)[ \t.[]"
   "Regular expression defining the beginning of a MATLAB function.")
 
-(defconst matlab-mcos-regexp "\\|classdef\\|properties\\|methods"
+(defconst matlab-mcos-regexp "\\|classdef\\|properties\\|methods\\|enumeration"
   "Keywords which mark the beginning of mcos blocks.")
 
 (defcustom matlab-block-indent-tic-toc-flag nil
