@@ -6,8 +6,12 @@ MATLAB and Emacs integration
 
   Add the following to your .emacs file:
 
-  (add-to-path "~/path/to/matlab.el")
-  (require 'matlab-load)
+  (add-to-list 'load-path "~/path/to/matlab.el")
+  (load-library "matlab-load")
+
+  ;; Enable CEDET feature support for MATLAB code. (Optional)
+  ;; (matlab-cedet-setup)
+
 
 * Finding Updates
 
@@ -48,16 +52,26 @@ MATLAB and Emacs integration
    CVS Repository:
    http://sourceforge.net/cvs/?group_id=154105
 
+   If you do not have a CVS client on your machine, you can use the
+   MATLAB script dl_emacs_support.m to download a fresh copy of the
+   matlab.el sources.
+
 ** Dependancies
 
-   MATLAB-Emacs now requires the CEDET suite for the following items:
+   MATLAB-Emacs can now use the CEDET suite for the following items:
 	- Modifying the build system (Makefiles, etc)
 	- mlint (uses EIEIO object system)
 	- parsing/completion (uses semantic parsing system)
+        - some template insertion features
 
    See http://cedet.sf.net for downloading CEDET.
 
-   If you only want to use matlab.el for editing code, you DO NOT need to install CEDET.
+   If you only want to use matlab.el for editing code or running the
+   MATLAB shell, you DO NOT need to install CEDET.
+
+   If you do want to use CEDET, add the following to your .emacs file:
+
+   (matlab-cedet-setup)
 
 * Mailing List:
 
