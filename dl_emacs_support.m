@@ -32,9 +32,10 @@ function dl_emacs_support(varargin)
     coreFiles = { 'matlab-load.el' 'matlab.el' 'mlint.el' };
     tlcFiles = { 'tlc.el' };
     cedetFiles = { 'cedet-matlab.el' 'semantic-matlab.el' ...
-                   'semanticdb-matlab.el' };
+                   'semanticdb-matlab.el' 'templates/srecode-matlab.srt' };
     supportFiles = { 'dl_emacs_support.m' 'README' 'Makefile' ...
-                     'Project.ede' 'INSTALL' 'ChangeLog' };
+                     'Project.ede' 'INSTALL' 'ChangeLog' ...
+                     'templates/Project.ede' 'templates/Makefile'};
     
     switch stuff.fileset
       case 'core'
@@ -44,17 +45,26 @@ function dl_emacs_support(varargin)
         getfiles(tlcFiles);
       case 'cedet'
         getfiles(coreFiles);
+        mktemplatedir;
         getfiles(cedetFiles);
       case 'support'
+        mktemplatedir;
         getfiles(supportFiles);
       case 'all'
         getfiles(coreFiles);
         getfiles(tlcFiles);
+        mktemplatedir;
         getfiles(cedetFiles);
         getfiles(supportFiles);
       otherwise
         error('Unknown fileset %s.', stuff.fileset);
     end    
+
+    function mktemplatedir
+        if ~exist('templates','dir')
+            mkdir('templates');
+        end
+    end
 
     function getfiles(fList)
         for i = 1:length(fList)
