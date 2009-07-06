@@ -1,6 +1,3 @@
-;; @TODO - merge in Uwe's patch
-
-
 ;;; matlab.el --- major mode for MATLAB dot-m files
 ;;
 ;; Author: Matt Wette <mwette@alumni.caltech.edu>,
@@ -10,7 +7,7 @@
 ;; Keywords: MATLAB
 ;; Version:
 
-(defconst matlab-mode-version "3.2.0"
+(defconst matlab-mode-version "3.3.0"
   "Current version of MATLAB mode.")
 
 ;;
