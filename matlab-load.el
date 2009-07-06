@@ -3,9 +3,33 @@
 ;;; Code:
 
 
+;;;### (autoloads (matlab-cedet-setup) "cedet-matlab" "cedet-matlab.el"
+;;;;;;  (19026 21759))
+;;; Generated autoloads from cedet-matlab.el
+
+(autoload (quote matlab-cedet-setup) "cedet-matlab" "\
+Update various paths to get SRecode to identify our macros.
+
+\(fn)" t nil)
+
+;;;***
+
+;;;### (autoloads (company-matlab-shell) "company-matlab-shell" "company-matlab-shell.el"
+;;;;;;  (19026 24400))
+;;; Generated autoloads from company-matlab-shell.el
+
+(autoload (quote company-matlab-shell) "company-matlab-shell" "\
+A `company-mode' completion back-end for Matlab-Shell.
+
+\(fn COMMAND &optional ARG &rest IGNORED)" t nil)
+
+;;;***
+
 ;;;### (autoloads (matlab-shell matlab-mode) "matlab" "matlab.el"
-;;;;;;  (17295 18467))
+;;;;;;  (19026 22684))
 ;;; Generated autoloads from matlab.el
+
+(add-to-list (quote auto-mode-alist) (quote ("\\.m$" . matlab-mode)))
 
 (autoload (quote matlab-mode) "matlab" "\
 MATLAB-mode is a major mode for editing MATLAB dot-m files.
@@ -16,7 +40,7 @@ Convenient editing commands are:
  \\[matlab-fill-region] - Fill code and comments in region.
  \\[matlab-fill-paragraph]     - Refill the current command or comment.
  \\[matlab-complete-symbol]   - Symbol completion of matlab symbolsbased on the local syntax.
- \\[matlat-indent-sexp] - Indent syntactic block of code.
+ \\[matlab-indent-sexp] - Indent syntactic block of code.
 
 Convenient navigation commands are:
  \\[matlab-beginning-of-command]   - Move to the beginning of a command.
@@ -59,13 +83,28 @@ Variables:
   `matlab-handle-simulink'      If t, enable simulink keyword highlighting.
 
 All Key Bindings:
-\\{matlab-mode-map}" t nil)
+\\{matlab-mode-map}
+
+\(fn)" t nil)
 
 (autoload (quote matlab-shell) "matlab" "\
 Create a buffer with MATLAB running as a subprocess.
 
 MATLAB shell cannot work on the MS Windows platform because MATLAB is not
-a console application." t nil)
+a console application.
+
+\(fn)" t nil)
+
+;;;***
+
+;;;### (autoloads (semantic-default-matlab-setup) "semantic-matlab"
+;;;;;;  "semantic-matlab.el" (19026 21813))
+;;; Generated autoloads from semantic-matlab.el
+
+(autoload (quote semantic-default-matlab-setup) "semantic-matlab" "\
+Set up a buffer for parsing of MATLAB files.
+
+\(fn)" nil nil)
 
 ;;;***
 
@@ -75,6 +114,11 @@ a console application." t nil)
 (autoload (quote tlc-mode) "tlc" "\
 Major mode for editing Tlc files, or files found in tlc directories." t nil)
 (add-to-list 'auto-mode-alist '("\\.tlc$" .tlc-mode))
+
+;;;***
+
+;;;### (autoloads nil nil ("hg2.el" "matlab-publish.el" "mlint.el"
+;;;;;;  "semanticdb-matlab.el") (19026 24405 579859))
 
 ;;;***
 
