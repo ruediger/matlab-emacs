@@ -3,7 +3,7 @@
 ;;; Copyright (C) 2004, 2005, 2008 Eric M. Ludlam: The Mathworks, Inc
 
 ;; Author: Eric M. Ludlam <eludlam@mathworks.com>
-;; X-RCS: $Id: semantic-matlab.el,v 1.13 2008/09/08 14:40:56 davenar Exp $
+;; X-RCS: $Id: semantic-matlab.el,v 1.14 2009/07/06 19:49:09 zappo Exp $
 
 ;; This file is not part of GNU Emacs.
 
@@ -33,6 +33,7 @@
 ;;
 ;; Caveat: MCOS classes have property declarations. @todo - support them
 
+(require 'mode-local)
 (require 'semantic)
 (require 'semantic-format)
 (require 'matlab)
@@ -606,11 +607,6 @@ This will include a list of type/field names when applicable."
 	semantic-stickyfunc-sticky-classes '(function)
 	)
   )
-
-;; Enable this autoload once versions of matlab.el are synchronized and
-;; generally available.
-;;;###autoload
-(add-hook 'matlab-mode-hook 'semantic-default-matlab-setup)
 
 (provide 'semantic-matlab)
 
