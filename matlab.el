@@ -1,3 +1,6 @@
+;; @TODO - merge in Uwe's patch
+
+
 ;;; matlab.el --- major mode for MATLAB dot-m files
 ;;
 ;; Author: Matt Wette <mwette@alumni.caltech.edu>,
@@ -178,10 +181,17 @@ should be ok."
   :group 'matlab
   :type 'sexp)
 
-(defcustom matlab-indent-function-body t
-  "*If non-nil, indent body of function."
+(defcustom matlab-indent-function-body 'guess
+  "*If non-nil, indent body of function.
+If the global value is nil, do not indent function bodies.
+If the global value is t, always indent function bodies.
+If the global value is 'guess, then the local value will be set to
+either nil or t when the MATLAB mode is started based on the
+file's current indentation."
   :group 'matlab
-  :type 'boolean)
+  :type '(choice (const :tag "Always" t)
+		 (const :tag "Never" nil)
+		 (const :tag "Guess" 'guess)))
 
 (make-variable-buffer-local 'matlab-indent-function-body)
 
@@ -837,7 +847,7 @@ Argument LIMIT is the maximum distance to search."
 	    )))))
 
 (defcustom matlab-keyword-list '("global" "persistent" "for" "parfor" "while"
-				 "if" "elseif" "else"
+				 "spmd" "if" "elseif" "else"
 				 "endfunction" "return" "break" "continue"
 				 "switch" "case" "otherwise" "try"
 				 "catch" "tic" "toc"
@@ -891,7 +901,7 @@ Customizing this variable is only useful if `regexp-opt' is available."
 	(concat "\\<\\(" (regexp-opt matlab-keyword-list) "\\)\\>")
       ;; Original hard-coded value for pre Emacs 20.1
       "\\<\\(break\\|ca\\(se\\|tch\\)\\|e\\(lse\\(\\|if\\)\\|ndfunction\\)\
-\\|\\(par\\)?for\\|global\\|if\\|otherwise\\|return\\|switch\\|try\\|while\\|tic\\|toc\\)\\>")
+\\|\\(par\\)?for\\|spmd\\|global\\|if\\|otherwise\\|return\\|switch\\|try\\|while\\|tic\\|toc\\)\\>")
     '(0 font-lock-keyword-face))
    ;; The end keyword is only a keyword when not used as an array
    ;; dereferencing part.
@@ -1214,35 +1224,32 @@ All Key Bindings:
 			     ((?_ . "w"))))
   (matlab-enable-block-highlighting 1)
   (if window-system (matlab-frame-init))
-  ; For compatibility with variable previously named matlab-indent-function
-  (condition-case nil
-      (setq matlab-indent-function-body matlab-indent-function)
-    (void-variable nil))
   ; If the buffer already has a function definition, figure out the correct
   ; settings for matlab-functions-have-end and matlab-indent-function.
   (goto-char (point-max))
-  (if (re-search-backward matlab-defun-regex nil t)
-      (let ((beg (point))
-            end ; filled in later
-            (cc (current-column))
-            (nf (let ((matlab-functions-have-end t))
-                  (condition-case nil
-                      (progn (matlab-forward-sexp) t)
-                    (error nil)))))
-        (if nf (matlab-toggle-functions-have-end-minor-mode)) ;; observation trumps default
-        (setq end (if nf (progn (forward-line 0) (point)) (point-max)))
-        (goto-char beg)
-        (catch 'done
-          (while (progn (forward-line 1) (< (point) end))
-            (if (looking-at "\\s-*\\(%\\|$\\)")
-                nil                     ; go on to next line
-              (looking-at "\\s-*")
-              (goto-char (match-end 0))
-              (setq matlab-indent-function-body (> (current-column) cc))
-              (throw 'done nil)))))
-    (if (and (bobp) ; the buffer is empty
-             matlab-functions-have-end) ; user wants this by default
-        (matlab-toggle-functions-have-end)))
+  (when (eq matlab-indent-function-body 'guess)
+    (if (re-search-backward matlab-defun-regex nil t)
+	(let ((beg (point))
+	      end			; filled in later
+	      (cc (current-column))
+	      (nf (let ((matlab-functions-have-end t))
+		    (condition-case nil
+			(progn (matlab-forward-sexp) t)
+		      (error nil)))))
+	  (if nf (matlab-toggle-functions-have-end-minor-mode)) ;; observation trumps default
+	  (setq end (if nf (progn (forward-line 0) (point)) (point-max)))
+	  (goto-char beg)
+	  (catch 'done
+	    (while (progn (forward-line 1) (< (point) end))
+	      (if (looking-at "\\s-*\\(%\\|$\\)")
+		  nil			; go on to next line
+		(looking-at "\\s-*")
+		(goto-char (match-end 0))
+		(setq matlab-indent-function-body (> (current-column) cc))
+		(throw 'done nil)))))
+      (if (and (bobp)			; the buffer is empty
+	       matlab-functions-have-end) ; user wants this by default
+	  (matlab-toggle-functions-have-end))))
   (if (or (featurep 'mlint)
 	  matlab-show-mlint-warnings
 	  matlab-highlight-cross-function-variables)
@@ -1398,18 +1405,18 @@ This variable should be set before loading matlab.el"
 
 (defconst matlab-block-beg-pre-if
   (if matlab-block-indent-tic-toc-flag
-      (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+      (concat "function\\|parfor\\|spmd\\|for\\|while\\|if\\|switch\\|try\\|tic"
 	      matlab-mcos-regexp)
-    (concat "function\\|parfor\\|for\\|while\\|if\\|switch\\|try"
+    (concat "function\\|parfor\\|spmd\\|for\\|while\\|if\\|switch\\|try"
 	    matlab-mcos-regexp))
   "Keywords which mark the beginning of an indented block.
 Includes function.")
 
 (defconst matlab-block-beg-pre-no-if
   (if matlab-block-indent-tic-toc-flag
-      (concat "parfor\\|for\\|while\\|if\\|switch\\|try\\|tic"
+      (concat "parfor\\|for\\|spmd\\|while\\|if\\|switch\\|try\\|tic"
 	      matlab-mcos-regexp)
-    (concat "parfor\\|for\\|while\\|if\\|switch\\|try"
+    (concat "parfor\\|for\\|spmd\\|while\\|if\\|switch\\|try"
 	    matlab-mcos-regexp))
   "Keywords which mark the beginning of an indented block.
 Excludes function.")
@@ -1504,7 +1511,7 @@ Know that `match-end' of 0 is the end of the functin name."
 
 (defvar matlab-keywords-solo
   '("break" "case" "else" "elseif" "end" "for" "parfor" "function" "if" "tic" "toc"
-    "otherwise" "profile" "switch" "while" "try" "catch")
+    "otherwise" "profile" "switch" "while" "try" "catch" "spmd")
   "Keywords that appear on a line by themselves.")
 (defvar matlab-keywords-return
   '("acos" "acosh" "acot" "acoth" "acsch" "asech" "asin" "asinh"
@@ -3911,7 +3918,7 @@ Optional argument FAST causes this check to be skipped."
 ;;  that did not have outputs earlier.
 ;;
 ;;  You probably don't want this as a default verify function
-(defvar matlab-quiesce-nosemi-regexp "\\s-*\\(function\\|parfor\\|for\\|while\\|try\\|catch\\|\
+(defvar matlab-quiesce-nosemi-regexp "\\s-*\\(function\\|parfor\\|for\\|spmd\\|while\\|try\\|catch\\|\
 switch\\|otherwise\\|case\\|break\\|if\\|else\\|end\\|return\\|disp\\|\
 $\\|%\\)"
   "Regular expression used to detect if a semicolon is needed at the end of a line.")
@@ -4088,7 +4095,8 @@ desired.  Optional argument FAST is not used."
   :type 'string)
 
 (defcustom matlab-shell-command-switches '("-nodesktop")
-  "*Command line parameters run with `matlab-shell-command'."
+  "*Command line parameters run with `matlab-shell-command'.
+Command switches are a list of strings.  Each entry is one switch."
   :group 'matlab-shell
   :type '(list :tag "Switch: "))
 
