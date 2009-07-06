@@ -14,16 +14,17 @@ LOADPATH= ../cedet/common/  ../cedet/eieio/\
     ../cedet/semantic/bovine/ ../cedet/semantic/
 LOADDEFS=matlab-load.el
 LOADDIRS=.
-misc_MISC=ChangeLog ChangeLog.old1 ChangeLog.old2 INSTALL README
-lisp_LISP=matlab.el mlint.el tlc.el
+misc_MISC=ChangeLog ChangeLog.old1 ChangeLog.old2 INSTALL README dl_emacs_support.m
+lisp_LISP=matlab.el mlint.el tlc.el matlab-publish.el
 EMACS=emacs
-cedet_LISP=semantic-matlab.el semanticdb-matlab.el
-VERSION=1.0
+EMACSFLAGS=-batch --no-site-file
+cedet_LISP=semantic-matlab.el semanticdb-matlab.el cedet-matlab.el company-matlab-shell.el
+VERSION=3.3.0
 DISTDIR=$(top)matlab-emacs-$(VERSION)
 
 
 
-all: autoloads misc lisp cedet
+all: autoloads misc lisp cedet Templates
 
 .PHONY: autoloads
 autoloads: 
@@ -44,7 +45,7 @@ lisp: $(lisp_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
 
 .PHONY: cedet
 cedet: $(cedet_LISP)
@@ -53,9 +54,14 @@ cedet: $(cedet_LISP)
 	   echo "(add-to-list 'load-path \"$$loadpath\")" >> $@-compile-script; \
 	done;
 	@echo "(setq debug-on-error t)" >> $@-compile-script
-	"$(EMACS)" -batch --no-site-file -l $@-compile-script -f batch-byte-compile $^
+	"$(EMACS)" $(EMACSFLAGS) -l $@-compile-script -f batch-byte-compile $^
+
+.PHONY:Templates
+Templates:
+	$(MAKE) -C templates
 
 tags: 
+	$(MAKE) -C templates/ $(MFLAGS) $@
 
 
 clean:
@@ -67,6 +73,7 @@ dist: autoloads
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	cp matlab-load.el $(misc_MISC) $(lisp_LISP) $(cedet_LISP) $(ede_FILES) $(DISTDIR)
+	$(MAKE) -C templates $(MFLAGS) DISTDIR=$(DISTDIR)/templates dist
 	tar -cvzf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)
 
