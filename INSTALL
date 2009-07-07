@@ -9,14 +9,22 @@ This matlab-emacs build system now requires the CEDET suite.
 The build system uses EDE for project management, Makefile creation,
 and autoload generation.
 
-To build:
+To build if CEDET is installed in ../cedet:
 
-   make "LOADPATH=../cedet/common ../cedet/eieio"
+  make
 
-where ../cedet is a full or relative path to the CEDET suite.
+To build if CEDET is installed in some other location:
+
+   make "LOADPATH=../cedet-VER/common ../cedet-VER/eieio ../cedet-VER/semantic/bovine/ ../cedet-VER/semantic/"
+
+where ../cedet-VER is a full or relative path to the CEDET suite.  If
+you get CEDET from CVS, then it is likey just "../cedet", if you use
+CEDET from a release, then it may be "../cedet-1.0pre6", or similar.
 
 This tool requires CEDET 1.0pre3 or later.
 
+If you have CEDET installed in "../cedet" then you do not need to
+specify a LOADPATH on the make command line.
 
 It is possible to use matlab.el, and associated programs without this
 extra package.  To do so, install and compile only those lisp files
