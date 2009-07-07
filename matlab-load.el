@@ -7,7 +7,7 @@
 ;;;;;;  (19026 21759))
 ;;; Generated autoloads from cedet-matlab.el
 
-(autoload (quote matlab-cedet-setup) "cedet-matlab" "\
+(autoload 'matlab-cedet-setup "cedet-matlab" "\
 Update various paths to get SRecode to identify our macros.
 
 \(fn)" t nil)
@@ -18,7 +18,7 @@ Update various paths to get SRecode to identify our macros.
 ;;;;;;  (19026 24400))
 ;;; Generated autoloads from company-matlab-shell.el
 
-(autoload (quote company-matlab-shell) "company-matlab-shell" "\
+(autoload 'company-matlab-shell "company-matlab-shell" "\
 A `company-mode' completion back-end for Matlab-Shell.
 
 \(fn COMMAND &optional ARG &rest IGNORED)" t nil)
@@ -29,9 +29,9 @@ A `company-mode' completion back-end for Matlab-Shell.
 ;;;;;;  (19026 22684))
 ;;; Generated autoloads from matlab.el
 
-(add-to-list (quote auto-mode-alist) (quote ("\\.m$" . matlab-mode)))
+(add-to-list 'auto-mode-alist '("\\.m$" . matlab-mode))
 
-(autoload (quote matlab-mode) "matlab" "\
+(autoload 'matlab-mode "matlab" "\
 MATLAB-mode is a major mode for editing MATLAB dot-m files.
 \\<matlab-mode-map>
 Convenient editing commands are:
@@ -87,7 +87,7 @@ All Key Bindings:
 
 \(fn)" t nil)
 
-(autoload (quote matlab-shell) "matlab" "\
+(autoload 'matlab-shell "matlab" "\
 Create a buffer with MATLAB running as a subprocess.
 
 MATLAB shell cannot work on the MS Windows platform because MATLAB is not
@@ -101,7 +101,7 @@ a console application.
 ;;;;;;  "semantic-matlab.el" (19026 21813))
 ;;; Generated autoloads from semantic-matlab.el
 
-(autoload (quote semantic-default-matlab-setup) "semantic-matlab" "\
+(autoload 'semantic-default-matlab-setup "semantic-matlab" "\
 Set up a buffer for parsing of MATLAB files.
 
 \(fn)" nil nil)
@@ -111,20 +111,24 @@ Set up a buffer for parsing of MATLAB files.
 ;;;### (autoloads (tlc-mode) "tlc" "tlc.el" (17295 18676))
 ;;; Generated autoloads from tlc.el
 
-(autoload (quote tlc-mode) "tlc" "\
-Major mode for editing Tlc files, or files found in tlc directories." t nil)
+(autoload 'tlc-mode "tlc" "\
+Major mode for editing Tlc files, or files found in tlc directories.
+
+\(fn)" t nil)
 (add-to-list 'auto-mode-alist '("\\.tlc$" .tlc-mode))
 
 ;;;***
 
 ;;;### (autoloads nil nil ("hg2.el" "matlab-publish.el" "mlint.el"
-;;;;;;  "semanticdb-matlab.el") (19026 24405 579859))
+;;;;;;  "semanticdb-matlab.el") (19027 15832 512712))
 
 ;;;***
 
+(provide 'matlab-load)
 ;; Local Variables:
 ;; version-control: never
 ;; no-byte-compile: t
 ;; no-update-autoloads: t
+;; coding: utf-8
 ;; End:
 ;;; matlab-load.el ends here
