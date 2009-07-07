@@ -208,7 +208,8 @@ will be included in the search.  If EXCLUDE-CLASSES, class
 directories (beginning with '@') will be skipped.  If
 EXCLUDE-PRIVATE, 'private' directories will be skipped."
   (if dirs
-      (let (files)
+      (let ((working-status-dynamic-type 'working-spinner-display)
+	    files)
 	(dolist (dir dirs)
 	  (when (and (boundp 'working-message)
 		     working-message)
