@@ -54,23 +54,7 @@
 (require 'easymenu)
 (require 'tempo)
 (require 'derived)
-(autoload 'mlint-minor-mode "mlint" nil t)
-
-;; From custom web page for compatibility between versions of custom:
-(eval-and-compile
-  (condition-case ()
-      (require 'custom)
-    (error nil))
-  (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
-      nil ;; We've got what we needed
-    ;; We have the old custom-library, hack around it!
-    (defmacro defgroup (&rest args)
-      nil)
-    (defmacro custom-add-option (&rest args)
-      nil)
-    (defmacro defface (&rest args) nil)
-    (defmacro defcustom (var value doc &rest args)
-      (` (defvar (, var) (, value) (, doc))))))
+(eval-when-compile  (require 'mlint))
 
 ;; compatibility
 (if (string-match "X[Ee]macs" emacs-version)
@@ -203,14 +187,6 @@ file's current indentation."
   (interactive)
   (matlab-toggle-functions-have-end-minor-mode))
 
-(defun matlab-toggle-functions-have-end-minor-mode ()
-  (matlab-functions-have-end-minor-mode)
-  (if (and matlab-functions-have-end-minor-mode (not (eq major-mode 'matlab-mode)))
-      (progn
-	(matlab-functions-have-end-minor-mode -1)
-	(error "functions-have-end minor mode is only for MATLAB Major mode")))
-  (setq matlab-functions-have-end matlab-functions-have-end-minor-mode))
-
 ;; The following minor mode is on if and only if the above variable is true;
 (easy-mmode-define-minor-mode matlab-functions-have-end-minor-mode
   "Toggle functions-have-end minor mode, indicating function/end pairing.
@@ -222,6 +198,14 @@ With prefix ARG, turn mlint minor mode on iff ARG is positive.
     (error " function...end"))
   nil ; empty mode-map
 )
+
+(defun matlab-toggle-functions-have-end-minor-mode ()
+  (matlab-functions-have-end-minor-mode)
+  (if (and matlab-functions-have-end-minor-mode (not (eq major-mode 'matlab-mode)))
+      (progn
+	(matlab-functions-have-end-minor-mode -1)
+	(error "functions-have-end minor mode is only for MATLAB Major mode")))
+  (setq matlab-functions-have-end matlab-functions-have-end-minor-mode))
 
 (defcustom matlab-indent-past-arg1-functions
   "[sg]et\\(_param\\)?\\|waitfor"
@@ -778,17 +762,17 @@ Argument LIMIT is the maximum distance to search."
       (while (< pos limit)
         (setq overlays (matlab-overlays-at pos))
         (while overlays
-          (setq overlay (car overlays))
-          (when (matlab-overlay-get overlay 'nested-function)
-            (when (= pos (matlab-overlay-start overlay))
-              (goto-char pos)
-              ;; The following line presumably returns true.
-              (throw 'result (re-search-forward "function" (+ pos 8) t)))
-            (let ((end-of-overlay (- (matlab-overlay-end overlay) 3)))
-              (when (<= pos end-of-overlay)
-                (goto-char end-of-overlay)
-                (throw 'result
-                       (re-search-forward "end" (+ end-of-overlay 3) t)))))
+          (let ((overlay (car overlays)))
+	    (when (matlab-overlay-get overlay 'nested-function)
+	      (when (= pos (matlab-overlay-start overlay))
+		(goto-char pos)
+		;; The following line presumably returns true.
+		(throw 'result (re-search-forward "function" (+ pos 8) t)))
+	      (let ((end-of-overlay (- (matlab-overlay-end overlay) 3)))
+		(when (<= pos end-of-overlay)
+		  (goto-char end-of-overlay)
+		  (throw 'result
+			 (re-search-forward "end" (+ end-of-overlay 3) t))))))
           (setq overlays (cdr overlays)))
         (setq pos (matlab-next-overlay-change pos)))
       nil ;; no matches, stop
@@ -801,19 +785,19 @@ Argument LIMIT is the maximum distance to search."
     (let ((pos (point))
           overlays variables)
       (while (< pos limit)
-        (setq overlays (matlab-overlays-at pos))
-        (while overlays
-          (setq overlay (car overlays))
-          (setq variables (matlab-overlay-get
-                           overlay 'cross-function-variables))
-          (if variables
-              (progn
-                (goto-char pos)
-                (setq pos (min limit (matlab-overlay-end overlay)))
-                (if (re-search-forward variables pos t)
-                    (progn
-                      (throw 'result t)))))
-          (setq overlays (cdr overlays)))
+        (let ((overlays (matlab-overlays-at pos)))
+	  (while overlays
+	    (let ((overlay (car overlays)))
+	      (setq variables (matlab-overlay-get
+			       overlay 'cross-function-variables))
+	      (if variables
+		  (progn
+		    (goto-char pos)
+		    (setq pos (min limit (matlab-overlay-end overlay)))
+		    (if (re-search-forward variables pos t)
+			(progn
+			  (throw 'result t))))))
+	    (setq overlays (cdr overlays))))
         (setq pos (matlab-next-overlay-change pos)))
       nil ;; no matches, stop
       )))
@@ -1196,6 +1180,7 @@ All Key Bindings:
   ; settings for matlab-functions-have-end and matlab-indent-function.
   (goto-char (point-max))
   (when (eq matlab-indent-function-body 'guess)
+    ;; Note: Compile warning below, but defined later in this file.
     (if (re-search-backward matlab-defun-regex nil t)
 	(let ((beg (point))
 	      end			; filled in later
@@ -2586,6 +2571,7 @@ Must be one of:
 		   (eq p (point))))
 	       (save-excursion
 		 (matlab-beginning-of-command)
+		 ;; Note: Compile warning below, but defined later.
 		 (not (looking-at matlab-quiesce-nosemi-regexp))))
 	  (insert ";"))
     ))
@@ -4558,9 +4544,9 @@ end\n"
 
        ;; Extract the frame position from the marker.
        frame (cons (match-string 3 gud-marker-acc)
-		   (string-to-int (substring gud-marker-acc
-					     (match-beginning 3)
-					     (match-end 3))))
+		   (string-to-number (substring gud-marker-acc
+						(match-beginning 3)
+						(match-end 3))))
 
        ;; Append any text before the marker to the output we're going
        ;; to return - we don't include the marker in this text.
@@ -4597,7 +4583,7 @@ end\n"
 		(let ((ef (substring url (match-beginning 1) (match-end 1)))
 		      (el (substring url (match-beginning 2) (match-end 2)))
 		      )
-		  (setq frame (cons ef (string-to-int el))))))
+		  (setq frame (cons ef (string-to-number el))))))
             )))
 
     ;; Check for a prompt to nuke...
@@ -4948,10 +4934,10 @@ This command requires an active MATLAB shell."
 
 (defun matlab-shell-run-region-or-line ()
   "Run region from BEG to END and display result in MATLAB shell.
-If region is not active run the current line.
+pIf region is not active run the current line.
 This command requires an active MATLAB shell."
   (interactive)
- (if zmacs-region-active-p
+ (if (and transient-mark-mode mark-active)
      (matlab-shell-run-region (mark) (point))
    (matlab-shell-run-region (matlab-point-at-bol) (matlab-point-at-eol))))
  
@@ -5169,11 +5155,11 @@ indication that it ran."
   "Find file EF in other window and to go line EL and 1-basec column EC.
 If DEBUG is non-nil, then setup GUD debugging features."
   (find-file-other-window ef)
-  (goto-line (string-to-int el))
+  (goto-line (string-to-number el))
   (when debug
-    (setq gud-last-frame (cons (buffer-file-name) (string-to-int el)))
+    (setq gud-last-frame (cons (buffer-file-name) (string-to-number el)))
     (gud-display-frame))
-  (setq ec (string-to-int ec))
+  (setq ec (string-to-number ec))
   (if (> ec 0) (forward-char (1- ec))))
 
 (defun matlab-find-other-window-via-url (url &optional debug)
@@ -5450,6 +5436,7 @@ buffer."
 (defun matlab-shell-topic-highlight-line (event)
   "A value of `mode-motion-hook' which will highlight topics under the mouse.
 EVENT is the user mouse event."
+  ;; XEMACS only function
   (let* ((buffer (event-buffer event))
 	 (point (and buffer (event-point event))))
     (if (and buffer (not (eq buffer mouse-grabbed-buffer)))
