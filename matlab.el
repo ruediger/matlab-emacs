@@ -54,7 +54,6 @@
 (require 'easymenu)
 (require 'tempo)
 (require 'derived)
-(eval-when-compile  (require 'mlint))
 
 ;; compatibility
 (if (string-match "X[Ee]macs" emacs-version)
@@ -189,9 +188,7 @@ file's current indentation."
 
 ;; The following minor mode is on if and only if the above variable is true;
 (easy-mmode-define-minor-mode matlab-functions-have-end-minor-mode
-  "Toggle functions-have-end minor mode, indicating function/end pairing.
-With prefix ARG, turn mlint minor mode on iff ARG is positive.
-\\{mlint-minor-mode-map\\}"
+  "Toggle functions-have-end minor mode, indicating function/end pairing."
   nil
   (condition-case nil ;; avoid parse error on xemacs
       (eval (read "#(\" function...end\" 0 15 (face (font-lock-keyword-face) fontified t))"))
