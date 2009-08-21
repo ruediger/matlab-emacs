@@ -748,6 +748,7 @@ Must be bound to event E."
       )
     (when repos (goto-char repos))))
 
+;;;###autoload
 (easy-mmode-define-minor-mode mlint-minor-mode
   "Toggle mlint minor mode, a mode for showing mlint errors.
 With prefix ARG, turn mlint minor mode on iff ARG is positive.
