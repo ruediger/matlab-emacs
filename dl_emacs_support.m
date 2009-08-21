@@ -29,7 +29,8 @@ function dl_emacs_support(varargin)
         error(['The folder: ''',stuff.destination, ''', does not exist.']);
     end
 
-    coreFiles = { 'matlab-load.el' 'matlab.el' 'mlint.el' };
+    coreFiles = { 'matlab-load.el' 'matlab.el' 'mlint.el' ...
+                  'toolbox/emacsinit.m' 'toolbox/opentoline.m' };
     tlcFiles = { 'tlc.el' };
     cedetFiles = { 'cedet-matlab.el' 'semantic-matlab.el' ...
                    'semanticdb-matlab.el' 'templates/srecode-matlab.srt' };
@@ -39,11 +40,14 @@ function dl_emacs_support(varargin)
     
     switch stuff.fileset
       case 'core'
+        mktoolboxdir
         getfiles(coreFiles);
       case 'tlc'
+        mktoolboxdir
         getfiles(coreFiles);
         getfiles(tlcFiles);
       case 'cedet'
+        mktoolboxdir
         getfiles(coreFiles);
         mktemplatedir;
         getfiles(cedetFiles);
@@ -51,6 +55,7 @@ function dl_emacs_support(varargin)
         mktemplatedir;
         getfiles(supportFiles);
       case 'all'
+        mktoolboxdir
         getfiles(coreFiles);
         getfiles(tlcFiles);
         mktemplatedir;
@@ -63,6 +68,12 @@ function dl_emacs_support(varargin)
     function mktemplatedir
         if ~exist('templates','dir')
             mkdir('templates');
+        end
+    end
+    
+    function mktoolboxdir
+        if ~exist('toolbox','dir')
+            mkdir('toolbox');
         end
     end
 
