@@ -26,13 +26,13 @@ A `company-mode' completion back-end for Matlab-Shell.
 ;;;***
 
 ;;;### (autoloads (matlab-shell matlab-mode) "matlab" "matlab.el"
-;;;;;;  (19026 22684))
+;;;;;;  (19086 58944))
 ;;; Generated autoloads from matlab.el
 
 (add-to-list 'auto-mode-alist '("\\.m$" . matlab-mode))
 
 (autoload 'matlab-mode "matlab" "\
-MATLAB-mode is a major mode for editing MATLAB dot-m files.
+MATLAB(R) mode is a major mode for editing MATLAB dot-m files.
 \\<matlab-mode-map>
 Convenient editing commands are:
  \\[matlab-comment-region]   - Comment/Uncomment out a region of code.
@@ -97,6 +97,18 @@ a console application.
 
 ;;;***
 
+;;;### (autoloads (mlint-minor-mode) "mlint" "mlint.el" (19086 58971))
+;;; Generated autoloads from mlint.el
+
+(autoload 'mlint-minor-mode "mlint" "\
+Toggle mlint minor mode, a mode for showing mlint errors.
+With prefix ARG, turn mlint minor mode on iff ARG is positive.
+\\{mlint-minor-mode-map\\}
+
+\(fn &optional ARG)" t nil)
+
+;;;***
+
 ;;;### (autoloads (semantic-default-matlab-setup) "semantic-matlab"
 ;;;;;;  "semantic-matlab.el" (19026 21813))
 ;;; Generated autoloads from semantic-matlab.el
@@ -119,8 +131,8 @@ Major mode for editing Tlc files, or files found in tlc directories.
 
 ;;;***
 
-;;;### (autoloads nil nil ("hg2.el" "matlab-publish.el" "mlint.el"
-;;;;;;  "semanticdb-matlab.el") (19027 15832 512712))
+;;;### (autoloads nil nil ("hg2.el" "matlab-publish.el" "semanticdb-matlab.el")
+;;;;;;  (19086 58974 113326))
 
 ;;;***
 
