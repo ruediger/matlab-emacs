@@ -4564,7 +4564,6 @@ end\n"
 	  ;; go find one.
 	  (let ((url gud-marker-acc)
 		ef el)
-	    (message "url: %S" url)
 	    (cond
 	     ((string-match "^error:\\(.*\\),\\([0-9]+\\),\\([0-9]+\\)$" url)
 	      (setq ef (substring url (match-beginning 1) (match-end 1))
