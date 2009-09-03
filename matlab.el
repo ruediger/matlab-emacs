@@ -4344,6 +4344,8 @@ in a popup buffer.
   (add-hook 'comint-output-filter-functions 'matlab-shell-version-scrape)
   ;; Add pseudo html-renderer
   (add-hook 'comint-output-filter-functions 'matlab-shell-render-html-anchor nil t)
+  (add-hook 'comint-output-filter-functions 'matlab-shell-render-errors-as-anchor nil t)
+
   (make-local-variable 'comment-start)
   (setq comment-start "%")
   (use-local-map matlab-shell-mode-map)
@@ -4412,23 +4414,7 @@ in a popup buffer.
   (matlab-show-version)
   )
 
-(defvar matlab-anchor-beg "<a href=\"\\([^\"]+\\)\">"
-  "Beginning of html anchor.")
-
-(defvar matlab-anchor-end "</a>"
-  "End of html anchor.")
-
-(defvar gud-matlab-marker-regexp-1 "^K>>"
-  "Regular expression for finding a file line-number.")
-
-(defvar gud-matlab-marker-regexp-2
-  (concat "^> In \\(" matlab-anchor-beg
-          "\\|\\)\\([-.a-zA-Z0-9_>/@]+\\) \\((\\w+) \\|\\)at line \\([0-9]+\\)[ \n]+")
-  "Regular expression for finding a file line-number.
-Please note: The leading > character represents the current stack frame, so if
-there are several frames, this makes sure we pick the right one to popup.")
-
-(defvar gud-matlab-marker-regexp-prefix "^> In "
+(defvar gud-matlab-marker-regexp-prefix "error:\\|opentoline"
   "A prefix to scan for to know if output might be scarfed later.")
 
 ;; The regular expression covers the following form:
@@ -4439,21 +4425,20 @@ there are several frames, this makes sure we pick the right one to popup.")
 ;; Warning: In <filename> at line # <stuff>
 (defvar gud-matlab-error-regexp
   (concat "\\(Error in ==>\\|Syntax error in ==>\\|In\\) "
-	  "\\([-@.a-zA-Z_0-9/ \\\\:]+\\).*[\n ][Oa][nt] line "
+	  "\\([-@.a-zA-Z_0-9/ \\\\:]+\\).*[\n ][Oa][nt]\\(?: line\\)? "
 	  "\\([0-9]+\\) ?")
   "Regular expression finding where an error occurred.")
-
-(defvar matlab-last-frame-returned nil
-  "Store the previously returned frame for MATLABs difficult debugging output.
-It is reset to nil whenever we are not prompted by the K>> output.")
-
-(defvar matlab-one-db-request nil
-  "Set to t if we requested a debugger command trace.")
 
 (defvar matlab-shell-html-map (make-sparse-keymap))
 (if (string-match "XEmacs" emacs-version)
     (define-key matlab-shell-html-map [button2] 'matlab-shell-html-click)
   (define-key matlab-shell-html-map [mouse-2] 'matlab-shell-html-click))
+
+(defvar matlab-anchor-beg "<a href=\"\\([^\"]+\\)\">"
+  "Beginning of html anchor.")
+
+(defvar matlab-anchor-end "</a>"
+  "End of html anchor.")
 
 (defun matlab-shell-render-html-anchor (str)
   "Render html anchors inserted into the MATLAB shell buffer.
@@ -4474,15 +4459,61 @@ Argument STR is the text for the anchor."
             (delete-region anchor-end-start anchor-end-finish)
             (delete-region anchor-beg-start anchor-beg-finish)
             ))))
-  (if (string-match gud-matlab-marker-regexp-1 str) ;; K>>
-      (let ((w (selected-window)))
-        (save-excursion
-          (if (search-backward "\nK>>" nil t)
-              (let ((url (progn (beginning-of-line) (matlab-url-at (point)))))
-                (if url
-                    (unwind-protect
-                        (matlab-find-other-window-via-url url t)
-                      (select-window w)))))))))
+  )
+
+(defvar matlab-shell-error-stack-start "^{\\?\\?\\?\\s-"
+  "Regexp for the start of a stack from an error.
+These error stacks are for MATLAB version R2009a or so.
+Disable this if anchors are ever supported.")
+
+(defvar matlab-shell-error-stack-end "^}\\s-*$"
+  "Regexp for the start of a stack from an error.
+These error stacks are for MATLAB version R2009a or so.
+Disable this if anchors are ever supported.")
+
+(defun matlab-shell-render-errors-as-anchor (str)
+  "Detect non-url errors, and treat them as if they were url anchors.
+Argument STR is the text that might have errors in it."
+  (when (string-match matlab-shell-error-stack-end str)
+    (save-excursion
+      (when (re-search-backward matlab-shell-error-stack-start nil t)
+	(let ((groupend nil)
+	      (first nil))
+	  (save-excursion
+	    (setq groupend (re-search-forward matlab-shell-error-stack-end))
+	    )
+	  ;; We have found an error stack to investigate.
+	  (while (re-search-forward gud-matlab-error-regexp nil t)
+	    (let* ((err-start (match-beginning 0))
+		   (err-end (match-end 0))
+		   (err-text (match-string 0))
+		   (err-file (match-string 2))
+		   (err-line (match-string 3))
+		   (o (matlab-make-overlay err-start err-end))
+		   (url (concat "opentoline('" err-file "'," err-line ",0)"))
+		   )
+	      (matlab-overlay-put o 'mouse-face 'highlight)
+	      (matlab-overlay-put o 'face 'underline)
+	      ;; The url will recycle opentoline code.
+	      (matlab-overlay-put o 'matlab-url url)
+	      (matlab-overlay-put o 'keymap matlab-shell-html-map)
+	      ;; Keep track of the very first error in this error stack.
+	      ;; It will represent the "place to go" for "go-to-last-error".
+	      (matlab-overlay-put o 'first-in-error-stack first)
+	      (when (not first) (setq first url))
+	      ))
+
+	  )))))
+
+(defvar gud-matlab-marker-regexp-1 "^K>>"
+  "Regular expression for finding a file line-number.")
+
+(defvar gud-matlab-marker-regexp-2
+  (concat "^> In \\(" matlab-anchor-beg
+          "\\|\\)\\([-.a-zA-Z0-9_>/@]+\\) \\((\\w+) \\|\\)at line \\([0-9]+\\)[ \n]+")
+  "Regular expression for finding a file line-number.
+Please note: The leading > character represents the current stack frame, so if
+there are several frames, this makes sure we pick the right one to popup.")
 
 (defun gud-matlab-massage-args (file args)
   "Argument massager for starting matlab file.
@@ -4491,8 +4522,7 @@ FILE is ignored, and ARGS is returned."
   args)
 
 (defun gud-matlab-marker-filter (string)
-  "Filters STRING for the Unified Debugger based on MATLAB output.
-Swiped ruthlessly from GDB mode in gud.el"
+  "Filters STRING for the Unified Debugger based on MATLAB output."
   (if matlab-prompt-seen
       nil
     (when (string-match ">> " string)
@@ -4527,80 +4557,42 @@ end\n"
   (setq gud-marker-acc (concat gud-marker-acc string))
   (let ((output "") (frame nil))
 
-    ;; Remove output from one stack trace...
-    (if (eq matlab-one-db-request t)
-	(if (string-match "db[a-z]+[ \n]+" gud-marker-acc)
-	    (setq gud-marker-acc (substring gud-marker-acc (match-end 0))
-		  matlab-one-db-request 'prompt)))
+    (when (not frame)
+      (when (string-match gud-matlab-marker-regexp-1 gud-marker-acc)
+	(when (not frame)
+	  ;; If there is a debug prompt, and no frame currently set,
+	  ;; go find one.
+	  (let ((url gud-marker-acc)
+		ef el)
+	    (message "url: %S" url)
+	    (cond
+	     ((string-match "^error:\\(.*\\),\\([0-9]+\\),\\([0-9]+\\)$" url)
+	      (setq ef (substring url (match-beginning 1) (match-end 1))
+		    el (substring url (match-beginning 2) (match-end 2)))
+	      )
+	     ((string-match "opentoline('\\([^']+\\)',\\([0-9]+\\),\\([0-9]+\\))" url)
+	      (setq ef (substring url (match-beginning 1) (match-end 1))
+		    el (substring url (match-beginning 2) (match-end 2)))
+	      )
+	     )
+	    (when ef
+	      (setq frame (cons ef (string-to-number el)))))))
+      )
 
-    ;; Process all the complete markers in this chunk.
-    (while (and (not (eq matlab-one-db-request t))
-		(string-match gud-matlab-marker-regexp-2 gud-marker-acc))
-
-      (setq
-
-       ;; Extract the frame position from the marker.
-       frame (cons (match-string 3 gud-marker-acc)
-		   (string-to-number (substring gud-marker-acc
-						(match-beginning 3)
-						(match-end 3))))
-
-       ;; Append any text before the marker to the output we're going
-       ;; to return - we don't include the marker in this text.
-       ;; If this is not a requested piece of text, then include
-       ;; it into the output.
-       output (concat output
-		      (substring gud-marker-acc 0
-				 (if matlab-one-db-request
-				     (match-beginning 0)
-				   (match-end 0))))
-
-       ;; Set the accumulator to the remaining text.
-       gud-marker-acc (substring gud-marker-acc (match-end 0))))
-
-    (if frame
-	(progn
-	  ;; We have a frame, so we don't need to do extra checking.
-	  (setq matlab-last-frame-returned frame)
-	  )
-      (if (and (not matlab-one-db-request)
-	       (string-match gud-matlab-marker-regexp-1 gud-marker-acc))
-	  ;; (progn
-	    ;; Here we know we are in debug mode, so find our stack, and
-	    ;; deal with that later...
-	    ;; (setq matlab-one-db-request t)
-	    ;; (process-send-string (get-buffer-process gud-comint-buffer)
-            ;;                       "dbstack('-completenames')\n")
-	  (when (not frame)
-	    ;; If there is a debug prompt, and no frame currently set,
-	    ;; go find one.
-	    (let ((url (matlab-shell-previous-matlab-url)))
-	      (when (and url
-			 (string-match "^error:\\(.*\\),\\([0-9]+\\),\\([0-9]+\\)$" url))
-		(let ((ef (substring url (match-beginning 1) (match-end 1)))
-		      (el (substring url (match-beginning 2) (match-end 2)))
-		      )
-		  (setq frame (cons ef (string-to-number el))))))
-            )))
-
-    ;; Check for a prompt to nuke...
-    (if (and (eq matlab-one-db-request 'prompt)
-	     (string-match "^K?>> $" gud-marker-acc))
-	(setq matlab-one-db-request nil
-	      output ""
-	      gud-marker-acc (substring gud-marker-acc (match-end 0))))
-
-    ;; Finish off this part of the output.  None of our special stuff
-    ;; ends with a \n, so display those as they show up...
-    (while (string-match "^[^\n]*\n" gud-marker-acc)
-      (setq output (concat output (substring gud-marker-acc 0 (match-end 0)))
-	    gud-marker-acc (substring gud-marker-acc (match-end 0))))
-
-    (if (string-match gud-matlab-marker-regexp-prefix gud-marker-acc)
+    (if (and (not frame)
+	     (string-match gud-matlab-marker-regexp-prefix gud-marker-acc)
+	     (not (string-match "^K?>>" gud-marker-acc))
+	     )
 	;; We could be collecting something.  Wait for a while.
 	nil
+      ;; Finish off this part of the output.  None of our special stuff
+      ;; ends with a \n, so display those as they show up...
+      (while (string-match "^[^\n]*\n" gud-marker-acc)
+	(setq output (concat output (substring gud-marker-acc 0 (match-end 0)))
+	      gud-marker-acc (substring gud-marker-acc (match-end 0))))
+
       (setq output (concat output gud-marker-acc)
-	    gud-marker-acc "")
+	  gud-marker-acc "")
       ;; Check our output for a prompt, and existence of a frame.
       ;; If t his is true, throw out the debug arrow stuff.
       (if (and (string-match "^>> $" output)
@@ -5138,19 +5130,40 @@ indication that it ran."
             o (cdr o)))
     url))
 
-(defun matlab-shell-previous-matlab-url ()
-  "Find a previous occurrence of an overlay with a MATLAB URL."
+(defun matlab-url-stack-top-at (p)
+  "Return the matlab-url overlay at P, or nil."
+  (let ((url nil) (o (matlab-overlays-at p)))
+    (while (and o (not url))
+      (setq url (or (matlab-overlay-get (car o) 'first-in-error-stack)
+		    (matlab-overlay-get (car o) 'matlab-url))
+            o (cdr o)))
+    url))
+
+(defun matlab-shell-previous-matlab-url (&optional stacktop)
+  "Find a previous occurrence of an overlay with a MATLAB URL.
+If STACKTOP is non-nil, then also get the top of some stack, which didn't
+show up in reverse order."
   (save-excursion
     (let ((url nil) (o nil) (p (point)))
       (while (and (not url)
                   (setq p (matlab-previous-overlay-change p))
                   (not (eq p (point-min))))
-        (setq url (matlab-url-at p)))
+        (setq url 
+	      (if stacktop
+		  (matlab-url-stack-top-at p)
+		(matlab-url-at p))))
       url)))
 
 (defun matlab-find-other-window-file-line-column (ef el ec &optional debug)
   "Find file EF in other window and to go line EL and 1-basec column EC.
 If DEBUG is non-nil, then setup GUD debugging features."
+  (cond ((file-exists-p ef)
+	 nil);; keep ef the same
+	((file-exists-p (concat ef ".m"))
+	 (setq ef (concat ef ".m"))) ;; Displayed w/out .m?
+	((string-match ">" ef)
+	 (setq ef (concat (substring ef 0 (match-beginning 0)) ".m")))
+	)
   (find-file-other-window ef)
   (goto-line (string-to-number el))
   (when debug
@@ -5181,7 +5194,7 @@ If DEBUG is non-nil, then setup GUD debugging features."
 To reference old errors, put the cursor just after the error text."
   (interactive)
   (catch 'done
-    (let ((url (matlab-shell-previous-matlab-url)))
+    (let ((url (matlab-shell-previous-matlab-url t)))
       (if url
           (progn (matlab-find-other-window-via-url url) (throw 'done nil))
         (save-excursion
