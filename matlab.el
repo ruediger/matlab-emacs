@@ -4392,7 +4392,8 @@ in a popup buffer.
       (progn
 	(gud-def gud-break  "dbstop at %l in %f"  "\C-b" "Set breakpoint at current line.")
 	(gud-def gud-remove "dbclear at %l in %f" "\C-d" "Remove breakpoint at current line")
-	(gud-def gud-step   "dbstep %p"           "\C-s" "Step one source line with display.")
+	(gud-def gud-step   "dbstep in"           "\C-s" "Step one source line, possibly into a function.")
+	(gud-def gud-next   "dbstep %p"           "\C-n" "Step over one source line.")
 	(gud-def gud-cont   "dbcont"              "\C-r" "Continue with display.")
 	(gud-def gud-finish "dbquit"              "\C-f" "Finish executing current function.")
 	(gud-def gud-up     "dbup %p"             "<"    "Up N stack frames (numeric arg).")
