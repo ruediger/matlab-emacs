@@ -6,7 +6,8 @@ MATLAB and Emacs integration
 
   Add the following to your .emacs file:
 
-  (add-to-list 'load-path "~/path/to/matlab.el")
+  ;; Replace path below to be where your matlab.el file is.
+  (add-to-list 'load-path "~/path/to/matlab-emacs")
   (load-library "matlab-load")
 
   ;; Enable CEDET feature support for MATLAB code. (Optional)
