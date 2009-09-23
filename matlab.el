@@ -4765,7 +4765,7 @@ Returns a string path to the root of the executing MATLAB."
 	      (limitpos nil))
 	 ;; search for character which limits completion, and limit command to it
 	 (setq limitpos
-	       (if (string-match ".*\\([( /[,;=']\\)" lastcmd)
+	       (if (string-match ".*\\([( /[.,;=']\\)" lastcmd)
 		   (1+ (match-beginning 1))
 		 0))
 	 (setq lastcmd (substring lastcmd limitpos))
