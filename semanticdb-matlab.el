@@ -36,8 +36,11 @@
 ;; personal MATLAB files here.
 
 (defvar semanticdb-matlab-include-paths
-  (list (expand-file-name "~/matlab") ;; Default location for extra code.
-  )
+  (if (file-exists-p (expand-file-name "~/matlab"))
+      (list (expand-file-name "~/matlab") ;; Default location for extra code.
+	    )
+    ;; Else, no default path.
+    nil)
   "Directories which should be scanned for m-files.")
 
 ;;; Classes:
