@@ -34,7 +34,7 @@ you need.
 
 To install all the Emacs tools for MATLAB, add this to your .emacs file:
 
-  (add-to-path "~/path/to/matlab.el")
+  (add-to-list 'load-path "~/path/to/matlab.el")
   (require 'matlab-load)
 
 ** matlab.el:
