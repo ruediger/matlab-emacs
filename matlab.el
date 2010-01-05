@@ -7,11 +7,11 @@
 ;; Keywords: MATLAB(R)
 ;; Version:
 
-(defconst matlab-mode-version "3.3.0"
+(defconst matlab-mode-version "3.3.1"
   "Current version of MATLAB(R) mode.")
 
 ;;
-;; Copyright (C) 2004-2005 The Mathworks, Inc
+;; Copyright (C) 2004-2010 The Mathworks, Inc
 ;; Copyright (C) 1997-2004 Eric M. Ludlam: The MathWorks, Inc
 ;; Copyright (C) 1991-1997 Matthew R. Wette
 ;;
@@ -166,12 +166,17 @@ should be ok."
 If the global value is nil, do not indent function bodies.
 If the global value is t, always indent function bodies.
 If the global value is 'guess, then the local value will be set to
-either nil or t when the MATLAB mode is started based on the
-file's current indentation."
+either nil or t when the MATLAB mode is started in a buffer based on the
+file's current indentation.
+If the global value is 'MathWorks-Standard, then the local value is not
+changed, and functions are indented based on `matlab-functions-have-end'."
   :group 'matlab
   :type '(choice (const :tag "Always" t)
 		 (const :tag "Never" nil)
-		 (const :tag "Guess" 'guess)))
+		 (const :tag "Guess" 'guess)
+                 (const :tag "MathWorks Standard"
+                        'MathWorks-Standard))
+  )
 
 (make-variable-buffer-local 'matlab-indent-function-body)
 
@@ -194,7 +199,27 @@ file's current indentation."
       (eval (read "#(\" function...end\" 0 15 (face (font-lock-keyword-face) fontified t))"))
     (error " function...end"))
   nil ; empty mode-map
+  ;; body of matlab-functions-have-end-minor-mode
+  (if matlab-functions-have-end-minor-mode
+      (setq matlab-functions-have-end t)
+    (setq matlab-functions-have-end nil)
+    )
 )
+
+(defun matlab-do-functions-have-end-p ()
+  "Non-nil if the first function in the current buffer terminates with end."
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward matlab-defun-regex nil t)
+        (let ((matlab-functions-have-end t))
+          (beginning-of-line)
+          (condition-case nil
+              (progn (matlab-forward-sexp) t)
+            (error nil))
+          )
+      nil
+      )
+    ))
 
 (defun matlab-toggle-functions-have-end-minor-mode ()
   (matlab-functions-have-end-minor-mode)
@@ -203,6 +228,16 @@ file's current indentation."
 	(matlab-functions-have-end-minor-mode -1)
 	(error "functions-have-end minor mode is only for MATLAB Major mode")))
   (setq matlab-functions-have-end matlab-functions-have-end-minor-mode))
+
+(defun matlab-indent-function-body-p ()
+  "Non-nil if functions bodies are indented. 
+See `matlab-indent-function-body' variable."
+  (if (eq matlab-indent-function-body 'MathWorks-Standard)
+      ;; Dec '09
+      ;; The MathWorks standard is the same as if functions have end.
+      matlab-functions-have-end
+    ;; Else, just return the variable.
+    matlab-indent-function-body))
 
 (defcustom matlab-indent-past-arg1-functions
   "[sg]et\\(_param\\)?\\|waitfor"
@@ -1173,21 +1208,41 @@ All Key Bindings:
 			     ((?_ . "w"))))
   (matlab-enable-block-highlighting 1)
   (if window-system (matlab-frame-init))
+
   ; If the buffer already has a function definition, figure out the correct
   ; settings for matlab-functions-have-end and matlab-indent-function.
   (goto-char (point-max))
-  (when (eq matlab-indent-function-body 'guess)
-    ;; Note: Compile warning below, but defined later in this file.
+
+  ;; If first function is terminated with an end statement, then functions have
+  ;; ends.
+  (if (matlab-do-functions-have-end-p)
+      (matlab-functions-have-end-minor-mode 1)
+    (matlab-functions-have-end-minor-mode -1)
+    )
+
+  ;; When matlab-indent-function-body is set to 'MathWorks-Standard,
+  ;;    - we indent all functions that terminate with an end statement
+  ;;    - old style functions (those without end statements) are not
+  ;;      indented.
+  ;; It is desired that all code be terminate with an end statement.
+  ;;
+  ;; When matlab-indent-function-body is set to 'guess,
+  ;;    - look at the first line of code and if indented, keep indentation
+  ;;      otherwise use MathWorks-Standard
+  ;;
+  (cond 
+   ((eq matlab-indent-function-body 'MathWorks-Standard)
+    )
+
+   ((eq matlab-indent-function-body 'guess)
     (if (re-search-backward matlab-defun-regex nil t)
 	(let ((beg (point))
 	      end			; filled in later
 	      (cc (current-column))
-	      (nf (let ((matlab-functions-have-end t))
-		    (condition-case nil
-			(progn (matlab-forward-sexp) t)
-		      (error nil)))))
-	  (if nf (matlab-toggle-functions-have-end-minor-mode)) ;; observation trumps default
-	  (setq end (if nf (progn (forward-line 0) (point)) (point-max)))
+              )
+	  (setq end (if matlab-functions-have-end 
+                        (progn (forward-line 0) (point)) 
+                      (point-max)))
 	  (goto-char beg)
 	  (catch 'done
 	    (while (progn (forward-line 1) (< (point) end))
@@ -1196,10 +1251,16 @@ All Key Bindings:
 		(looking-at "\\s-*")
 		(goto-char (match-end 0))
 		(setq matlab-indent-function-body (> (current-column) cc))
-		(throw 'done nil)))))
-      (if (and (bobp)			; the buffer is empty
-	       matlab-functions-have-end) ; user wants this by default
-	  (matlab-toggle-functions-have-end))))
+		(throw 'done nil))))
+          )
+      (setq matlab-indent-function-body 'MathWorks-Standard)
+      )
+    )
+    
+   (t)
+   )
+
+
   (if (or (featurep 'mlint)
 	  matlab-show-mlint-warnings
 	  matlab-highlight-cross-function-variables)
@@ -2255,7 +2316,7 @@ Argument CURRENT-INDENTATION is what the previous line recommends for indentatio
       (if matlab-functions-have-end
           ;; A function line has intrinsic indentation iff function bodies are
           ;; not indented and the function line is nested within another function.
-          (if (and (not matlab-indent-function-body)
+          (if (and (not (matlab-indent-function-body-p))
                    (save-excursion
                      (beginning-of-line)
                      (matlab-beginning-of-enclosing-defun)))
@@ -2276,9 +2337,10 @@ Argument CURRENT-INDENTATION is what the previous line recommends for indentatio
         (if end-of-function
             (if (or matlab-functions-have-end
                     (if (yes-or-no-p matlab-functions-have-end-should-be-true)
+			;; TODO - ask user to reindent the fcn now?
                         (setq matlab-functions-have-end t)
                       (error "Unmatched end")))
-                (if matlab-indent-function-body
+                (if (matlab-indent-function-body-p)
                     (setq ci (- ci matlab-indent-level))))
           ;; Next, see if this line starts with an end, and whether the
           ;; end is matched, and whether the line is blank up to the match.
@@ -2466,7 +2528,7 @@ See `matlab-calculate-indentation'."
 	      (bc (matlab-lattr-block-cont startpnt))
 	      (mc (matlab-lattr-middle-block-cont))
 	      (ec (matlab-lattr-endless-block-cont))
-	      (hc (and matlab-indent-function-body (matlab-ltype-help-comm)))
+	      (hc (and (matlab-indent-function-body-p) (matlab-ltype-help-comm)))
 	      (rc (and (/= 0 matlab-comment-anti-indent)
 		       (matlab-ltype-comm)
 		       (not (matlab-ltype-help-comm))
@@ -2475,15 +2537,15 @@ See `matlab-calculate-indentation'."
 	      (ci (current-indentation)))
 	  ;; When the current point is on a line with a function, the value of bc will
 	  ;; reflect the function in a block count iff if matlab-functions-have-end is
-	  ;; true.  However, if matlab-indent-function-body is false, there should be
+	  ;; true.  However, if matlab-indent-function-body-p is false, there should be
 	  ;; no actual indentation, so bc needs to be decremented by 1.  Similarly, if
 	  ;; on a line with an end that closes a function, bc needs to be decremented
-	  ;; by 1 if matlab-functions-have-end is true and matlab-indent-function-body
+	  ;; by 1 if matlab-functions-have-end is true and matlab-indent-function-body-p
 	  ;; is false.  However, just to be safe, indentation is not allowed to go
 	  ;; negative.  Thus:
 	  (if matlab-functions-have-end
 	      (if (and
-		   (not matlab-indent-function-body)
+		   (not (matlab-indent-function-body-p))
 		   (or (matlab-ltype-function-definition)
 		       (and (matlab-lattr-local-end)
 			    (save-excursion
@@ -2493,7 +2555,7 @@ See `matlab-calculate-indentation'."
 		      (setq bc (1- bc))
 		    (if (>= ci matlab-indent-level)
 			(setq bc -1))))
-	    (if (and matlab-indent-function-body (matlab-ltype-function-definition))
+	    (if (and (matlab-indent-function-body-p) (matlab-ltype-function-definition))
 		(setq bc (1+ bc))))
 	  ;; Remove 1 from the close count if there is an END on the beginning
 	  ;; of this line, since in that case, the unindent has already happened.
@@ -4022,7 +4084,7 @@ desired.  Optional argument FAST is not used."
 ;			(not matlab-fill-count-ellipsis-flag)))
 ;       :style toggle :selected 'matlab-fill-count-ellipsis-flag]
       ["Indent Function Body"
-       (setq matlab-indent-function-body (not matlab-indent-function-body))
+       (setq matlab-indent-function-body (not (matlab-indent-function-body-p)))
        :style toggle :selected matlab-indent-function-body]
       ["Functions Have end"
        matlab-toggle-functions-have-end
