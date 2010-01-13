@@ -4609,7 +4609,6 @@ end\n"
       (setq matlab-prompt-seen t)
       ))
   (let ((garbage (concat "\\(" (regexp-quote "\C-g") "\\|"
-			 (regexp-quote "\C-h") "\\|"
  			 (regexp-quote "\033[H0") "\\|"
  			 (regexp-quote "\033[H\033[2J") "\\|"
  			 (regexp-quote "\033H\033[2J") "\\)")))
@@ -4617,6 +4616,7 @@ end\n"
       (if (= (aref string (match-beginning 0)) ?\C-g)
 	  (beep t))
       (setq string (replace-match "" t t string))))
+
   (setq gud-marker-acc (concat gud-marker-acc string))
   (let ((output "") (frame nil))
 
@@ -4640,11 +4640,19 @@ end\n"
 	    (when ef
 	      (setq frame (cons ef (string-to-number el)))))))
       )
-
+    ;; This if makes sure that the entirety of an error output is brought in
+    ;; so that matlab-shell-mode doesn't try to display a file that only partially
+    ;; exists in the buffer.  Thus, if MATLAB output:
+    ;;  error: /home/me/my/mo/mello.m,10,12
+    ;; All of that is in the buffer, and it goes to mello.m, not just
+    ;; the first half of that file name.
+    ;; The below used to match against the prompt, not \n, but then text that
+    ;; had error: in it for some other reason wouldn't display at all.
     (if (and (not frame)
-	     (string-match gud-matlab-marker-regexp-prefix gud-marker-acc)
-	     (not (string-match "^K?>>" gud-marker-acc))
-	     )
+	     (let ((start (string-match gud-matlab-marker-regexp-prefix gud-marker-acc)))
+	       (and start
+		    (not (string-match "\n" gud-marker-acc start))
+		    )))
 	;; We could be collecting something.  Wait for a while.
 	nil
       ;; Finish off this part of the output.  None of our special stuff
