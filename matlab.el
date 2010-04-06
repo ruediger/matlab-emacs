@@ -4394,6 +4394,11 @@ in a popup buffer.
 	comint-dynamic-complete-functions '(comint-replace-by-expanded-history)
 	comint-process-echoes matlab-shell-echoes
 	)
+  ;; matlab-shell variable setup
+  (make-local-variable 'matlab-shell-last-error-anchor)
+  (setq matlab-shell-last-error-anchor nil)
+
+  ;; Shell Setup
   (require 'shell)
   (if (fboundp 'shell-directory-tracker)
       (add-hook 'comint-input-filter-functions 'shell-directory-tracker))
@@ -4480,24 +4485,16 @@ in a popup buffer.
 (defvar gud-matlab-marker-regexp-prefix "error:\\|opentoline"
   "A prefix to scan for to know if output might be scarfed later.")
 
-;; The regular expression covers the following form:
-;; Errors:  Error in ==> <filename>
-;;          On line # ==> <command_name>
-;; Syntax:  Syntax error in ==> <filename>
-;;          On line # ==> <sample-text>
-;; Warning: In <filename> at line # <stuff>
-(defvar gud-matlab-error-regexp
-  (concat "\\(Error in ==>\\|Syntax error in ==>\\|In\\) "
-	  "\\([-@.a-zA-Z_0-9/ \\\\:]+\\).*[\n ][Oa][nt]\\(?: line\\)? "
-	  "\\([0-9]+\\) ?")
-  "Regular expression finding where an error occurred.")
+(defvar matlab-shell-html-map
+  (let ((km (make-sparse-keymap)))
+    (if (string-match "XEmacs" emacs-version)
+	(define-key km [button2] 'matlab-shell-html-click)
+      (define-key km [mouse-2] 'matlab-shell-html-click))
+    (define-key km [return] 'matlab-shell-html-go)
+    km)
+  "Keymap used on overlays that represent errors.")
 
-(defvar matlab-shell-html-map (make-sparse-keymap))
-(if (string-match "XEmacs" emacs-version)
-    (define-key matlab-shell-html-map [button2] 'matlab-shell-html-click)
-  (define-key matlab-shell-html-map [mouse-2] 'matlab-shell-html-click))
-
-(defvar matlab-anchor-beg "<a href=\"\\([^\"]+\\)\">"
+(defvar matlab-anchor-beg "<a href=\"\\(?:matlab: \\)?\\([^\"]+\\)\">"
   "Beginning of html anchor.")
 
 (defvar matlab-anchor-end "</a>"
@@ -4519,54 +4516,63 @@ Argument STR is the text for the anchor."
             (matlab-overlay-put o 'face 'underline)
             (matlab-overlay-put o 'matlab-url anchor-text)
             (matlab-overlay-put o 'keymap matlab-shell-html-map)
+	    (matlab-overlay-put o 'help-echo anchor-text)
             (delete-region anchor-end-start anchor-end-finish)
             (delete-region anchor-beg-start anchor-beg-finish)
             ))))
   )
 
-(defvar matlab-shell-error-stack-start "^{\\?\\?\\?\\s-"
-  "Regexp for the start of a stack from an error.
-These error stacks are for MATLAB version R2009a or so.
-Disable this if anchors are ever supported.")
+;; The regular expression covers the following form:
+;; Errors:  Error in ==> <function name>
+;;          On line # ==> <command_name>
+;; Errors:  Error using ==> <function name> at <#>
+;; Syntax:  Syntax error in ==> <filename>
+;;          On line # ==> <sample-text>
+;; Warning: In <filename> at line # <stuff>
+(defvar gud-matlab-error-regexp
+  (concat "\\(Error \\(?:in\\|using\\) ==>\\|Syntax error in ==>\\|In\\) "
+	  "\\([-@.a-zA-Z_0-9/ \\\\:]+\\)\\(?:>[^ ]+\\).*[\n ]\\(?:On\\|at\\)\\(?: line\\)? "
+	  "\\([0-9]+\\) ?")
+  "Regular expression finding where an error occurred.")
 
-(defvar matlab-shell-error-stack-end "^}\\s-*$"
-  "Regexp for the start of a stack from an error.
-These error stacks are for MATLAB version R2009a or so.
-Disable this if anchors are ever supported.")
+(defvar matlab-shell-last-error-anchor nil
+  "Last point where an error anchor was set.")
 
 (defun matlab-shell-render-errors-as-anchor (str)
   "Detect non-url errors, and treat them as if they were url anchors.
 Argument STR is the text that might have errors in it."
-  (when (string-match matlab-shell-error-stack-end str)
-    (save-excursion
-      (when (re-search-backward matlab-shell-error-stack-start nil t)
-	(let ((groupend nil)
-	      (first nil))
-	  (save-excursion
-	    (setq groupend (re-search-forward matlab-shell-error-stack-end))
-	    )
-	  ;; We have found an error stack to investigate.
-	  (while (re-search-forward gud-matlab-error-regexp nil t)
-	    (let* ((err-start (match-beginning 0))
-		   (err-end (match-end 0))
-		   (err-text (match-string 0))
-		   (err-file (match-string 2))
-		   (err-line (match-string 3))
-		   (o (matlab-make-overlay err-start err-end))
-		   (url (concat "opentoline('" err-file "'," err-line ",0)"))
-		   )
-	      (matlab-overlay-put o 'mouse-face 'highlight)
-	      (matlab-overlay-put o 'face 'underline)
-	      ;; The url will recycle opentoline code.
-	      (matlab-overlay-put o 'matlab-url url)
-	      (matlab-overlay-put o 'keymap matlab-shell-html-map)
-	      ;; Keep track of the very first error in this error stack.
-	      ;; It will represent the "place to go" for "go-to-last-error".
-	      (matlab-overlay-put o 'first-in-error-stack first)
-	      (when (not first) (setq first url))
-	      ))
-
-	  )))))
+  (save-excursion
+    ;; We have found an error stack to investigate.
+    (let ((first nil)
+	  (overlaystack nil))
+      (while (re-search-backward gud-matlab-error-regexp
+				 (if matlab-shell-last-error-anchor
+				     (min matlab-shell-last-error-anchor (point))
+				   (point))
+				 t)
+	(let* ((err-start (match-beginning 0))
+	       (err-end (match-end 0))
+	       (err-text (match-string 0))
+	       (err-file (match-string 2))
+	       (err-line (match-string 3))
+	       (o (matlab-make-overlay err-start err-end))
+	       (url (concat "opentoline('" err-file "'," err-line ",0)"))
+	       )
+	  (matlab-overlay-put o 'mouse-face 'highlight)
+	  (matlab-overlay-put o 'face 'underline)
+	  ;; The url will recycle opentoline code.
+	  (matlab-overlay-put o 'matlab-url url)
+	  (matlab-overlay-put o 'keymap matlab-shell-html-map)
+	  (matlab-overlay-put o 'help-echo (concat "Jump to error at " err-file "."))
+	  (setq first url)
+	  (push o overlaystack)
+	  ))
+      ;; Keep track of the very first error in this error stack.
+      ;; It will represent the "place to go" for "go-to-last-error".
+      (dolist (O overlaystack)
+	(matlab-overlay-put O 'first-in-error-stack first))
+      ;; Once we've found something, don't scan it again.
+      (setq matlab-shell-last-error-anchor (point-marker)))))
 
 (defvar gud-matlab-marker-regexp-1 "^K>>"
   "Regular expression for finding a file line-number.")
@@ -4648,10 +4654,12 @@ end\n"
     ;; the first half of that file name.
     ;; The below used to match against the prompt, not \n, but then text that
     ;; had error: in it for some other reason wouldn't display at all.
-    (if (and (not frame)
+    (if (and matlab-prompt-seen ;; Don't collect during boot
+	     (not frame) ;; don't collect debug stuff
 	     (let ((start (string-match gud-matlab-marker-regexp-prefix gud-marker-acc)))
 	       (and start
 		    (not (string-match "\n" gud-marker-acc start))
+		    ;;(not (string-match "^K?>>\\|\\?\\?\\?\\s-Error while evaluating" gud-marker-acc start))
 		    )))
 	;; We could be collecting something.  Wait for a while.
 	nil
@@ -5281,6 +5289,11 @@ To reference old errors, put the cursor just after the error text."
   "Go to the error at the location of event E."
   (interactive "e")
   (mouse-set-point e)
+  (matlab-shell-html-go))
+
+(defun matlab-shell-html-go ()
+  "Go to the error at the location `point'."
+  (interactive)
   (let ((url (matlab-url-at (point))))
     (if url (matlab-find-other-window-via-url url))))
 
