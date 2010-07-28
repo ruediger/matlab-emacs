@@ -5,7 +5,7 @@
 ;; Created: June 25, 2002
 ;; Version:
 
-(defvar mlint-version "1.3"
+(defvar mlint-version "1.3.1"
   "The current version of mlint minor mode.")
 
 ;; Copyright (C) 2002-2005 The MathWorks Inc.
@@ -34,6 +34,8 @@
 
 ;;; Code:
 (defvar mlint-platform
+  ;; xxx which matlab
+  ;;     MATLABROOT/bin/util/arch.sh (or arch.bat)
   (cond ((eq system-type 'darwin)
 	 "mac")
 	((eq system-type 'gnu/linux)
@@ -69,6 +71,9 @@ SYMBOL is the variable being set.  VALUE is the new value."
       (custom-set-default symbol value)
     (error (set symbol value)))
   (mlint-reset-program))
+
+(defvar mlint-program-selection-fcn nil
+  "Function use to specify the `mlint-program' for the current buffer.")
 
 (defvar mlint-program nil
   "Program to run for MLint.
@@ -768,6 +773,15 @@ With prefix ARG, turn mlint minor mode on iff ARG is positive.
 	(remove-hook 'after-save-hook 'mlint-buffer t)
 	(easy-menu-remove mlint-minor-menu)
 	)
+    (when mlint-program-selection-fcn
+      (let ((ans (funcall mlint-program-selection-fcn))
+            )
+        (when ans
+          (make-local-variable 'mlint-program)
+          (setq mlint-program ans)
+          )
+        )
+      )
     (if (not mlint-program)
 	(if (y-or-n-p "No MLINT program available.  Configure it?")
 	    (customize-variable 'mlint-programs))
