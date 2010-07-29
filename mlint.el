@@ -163,6 +163,7 @@ Argument STRING is the text to interpret."
 If BUFFER is nil, use the current buffer."
   (when (and (file-exists-p (buffer-file-name)) mlint-program)
     (let* ((fn (buffer-file-name (current-buffer)))
+	   (buffer-mlint-program mlint-program)
            (dd default-directory)
            (show-mlint-warnings matlab-show-mlint-warnings)
            (highlight-cross-function-variables
@@ -186,7 +187,7 @@ If BUFFER is nil, use the current buffer."
 	(erase-buffer)
 	(when mlint-verbose (message "Running mlint..."))
 
-	(apply 'call-process mlint-program nil (current-buffer) nil
+	(apply 'call-process buffer-mlint-program nil (current-buffer) nil
 	       (append flags (list fn)))
 
 	(when mlint-verbose (message "Running mlint...done"))
