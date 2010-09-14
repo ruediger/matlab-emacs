@@ -1235,26 +1235,27 @@ All Key Bindings:
     )
 
    ((eq matlab-indent-function-body 'guess)
-    (if (re-search-backward matlab-defun-regex nil t)
-	(let ((beg (point))
-	      end			; filled in later
-	      (cc (current-column))
-              )
-	  (setq end (if matlab-functions-have-end 
-                        (progn (forward-line 0) (point)) 
-                      (point-max)))
-	  (goto-char beg)
-	  (catch 'done
-	    (while (progn (forward-line 1) (< (point) end))
-	      (if (looking-at "\\s-*\\(%\\|$\\)")
-		  nil			; go on to next line
-		(looking-at "\\s-*")
-		(goto-char (match-end 0))
-		(setq matlab-indent-function-body (> (current-column) cc))
-		(throw 'done nil))))
-          )
-      (setq matlab-indent-function-body 'MathWorks-Standard)
-      )
+    (save-excursion
+      (if (re-search-backward matlab-defun-regex nil t)
+	  (let ((beg (point))
+		end			; filled in later
+		(cc (current-column))
+		)
+	    (setq end (if matlab-functions-have-end 
+			  (progn (forward-line 0) (point)) 
+			(point-max)))
+	    (goto-char beg)
+	    (catch 'done
+	      (while (progn (forward-line 1) (< (point) end))
+		(if (looking-at "\\s-*\\(%\\|$\\)")
+		    nil			; go on to next line
+		  (looking-at "\\s-*")
+		  (goto-char (match-end 0))
+		  (setq matlab-indent-function-body (> (current-column) cc))
+		  (throw 'done nil))))
+	    )
+	(setq matlab-indent-function-body 'MathWorks-Standard)
+	))
     )
     
    (t)
@@ -1275,8 +1276,9 @@ All Key Bindings:
 	;; If there is an error loading the stuff, don't
 	;; continue.
 	(error nil)))
-  (goto-char (point-min))
-  (run-hooks 'matlab-mode-hook)
+  (save-excursion
+    (goto-char (point-min))
+    (run-hooks 'matlab-mode-hook))
   (if matlab-vers-on-startup (matlab-show-version)))
 
 ;;; Utilities =================================================================
@@ -3850,8 +3852,12 @@ If optional FAST is non-nil, do not perform usually lengthy checks."
   (if matlab-highlight-cross-function-variables
       (if matlab-show-mlint-warnings
           (mlint-buffer)        ; became true, recompute mlint info
-        (mlint-clear-warnings)) ; became false, just remove hilighting
-    (mlint-minor-mode)))        ; change mlint mode altogether
+        (mlint-clear-warnings))) ; became false, just remove hilighting
+  ;; change mlint mode altogether
+  (mlint-minor-mode 
+   (if (or matlab-highlight-cross-function-variables
+           matlab-show-mlint-warnings)
+       1 -1)))
 
 (defun matlab-toggle-highlight-cross-function-variables ()
   "Toggle `matlab-highlight-cross-function-variables'."
@@ -3862,8 +3868,11 @@ If optional FAST is non-nil, do not perform usually lengthy checks."
       (if matlab-highlight-cross-function-variables
           (mlint-buffer)        ; became true, recompute mlint info
                                 ; became false, just remove hilighting ...
-        (mlint-clear-cross-function-variable-highlighting))
-    (mlint-minor-mode)))        ; change mlint mode altogether
+        (mlint-clear-cross-function-variable-highlighting)))
+  (mlint-minor-mode 
+   (if (or matlab-highlight-cross-function-variables
+           matlab-show-mlint-warnings)
+       1 -1)))        ; change mlint mode altogether
 
 ;;
 ;; Add more auto verify/fix functions here!
