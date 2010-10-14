@@ -30,6 +30,7 @@ function dl_emacs_support(varargin)
     end
 
     coreFiles = { 'matlab-load.el' 'matlab.el' 'mlint.el' ...
+                  'matlab-publish.el' 'company-matlab-shell.el' ...
                   'toolbox/emacsinit.m' 'toolbox/opentoline.m' };
     tlcFiles = { 'tlc.el' };
     cedetFiles = { 'cedet-matlab.el' 'semantic-matlab.el' ...
@@ -66,14 +67,16 @@ function dl_emacs_support(varargin)
     end    
 
     function mktemplatedir
-        if ~exist('templates','dir')
-            mkdir('templates');
+        templateDir = fullfile(stuff.destination,'templates');
+        if ~exist(templateDir,'dir')
+            mkdir(templateDir);
         end
     end
     
     function mktoolboxdir
-        if ~exist('toolbox','dir')
-            mkdir('toolbox');
+        toolboxDir = fullfile(stuff.destination,'toolbox');
+        if ~exist(toolboxDir,'dir')
+            mkdir(toolboxDir);
         end
     end
 
