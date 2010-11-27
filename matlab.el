@@ -4337,13 +4337,12 @@ Try C-h f matlab-shell RET"))
 (defun matlab-shell-hack-logo (str)
   "Replace the text logo with a real logo.
 STR is passed from the commint filter."
-  (when (string-match "< M A T L A B >" str)
+  (when (string-match "< M A T L A B (R) >" str)
     (save-excursion
       (when (re-search-backward "^[ \t]+< M A T L A B (R) >" (point-min) t)
  	(delete-region (match-beginning 0) (match-end 0))
- 	(insert (make-string 16 ? ))
- 	(set-extent-begin-glyph (make-extent (point) (point))
- 				(make-glyph matlab-shell-logo))))
+ 	(insert (make-string 31 ? ))
+        (insert-image (create-image matlab-shell-logo))))
     ;; Remove this function from `comint-output-filter-functions'
     (remove-hook 'comint-output-filter-functions
  		 'matlab-shell-hack-logo))
@@ -4412,9 +4411,8 @@ in a popup buffer.
   (require 'shell)
   (if (fboundp 'shell-directory-tracker)
       (add-hook 'comint-input-filter-functions 'shell-directory-tracker))
-  ;; Add a spiffy logo if we are running XEmacs
-  (if (and (string-match "XEmacs" emacs-version)
-	   (stringp matlab-shell-logo)
+  ;; Add a spiffy logo
+  (if (and (stringp matlab-shell-logo)
 	   (file-readable-p matlab-shell-logo))
       (add-hook 'comint-output-filter-functions 'matlab-shell-hack-logo))
   ;; Add a version scraping logo identification filter.
