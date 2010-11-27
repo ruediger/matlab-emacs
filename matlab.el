@@ -4039,7 +4039,8 @@ desired.  Optional argument FAST is not used."
    matlab-mode-map
    "MATLAB menu"
    '("MATLAB"
-     ["Start MATLAB" matlab-shell (not (matlab-with-emacs-link)) ]
+     ["Start MATLAB" matlab-shell :active (not (or (matlab-with-emacs-link) (matlab-shell-active-p))) :visible (not (matlab-shell-active-p)) ]
+     ["Switch to MATLAB" matlab-shell :active (and (not (matlab-with-emacs-link)) (matlab-shell-active-p)) :visible (matlab-shell-active-p) ]
      ["Save and go" matlab-shell-save-and-go t]
      ["Run Region" matlab-shell-run-region t]
      ["Run Cell" matlab-shell-run-cell t]
