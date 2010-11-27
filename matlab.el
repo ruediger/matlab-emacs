@@ -4720,17 +4720,18 @@ end\n"
 (defun matlab-shell-previous-matching-input-from-input (n)
   "Get the Nth previous matching input from for the command line."
   (interactive "p")
-  (if (comint-after-pmark-p)
-      (if (memq last-command '(matlab-shell-previous-matching-input-from-input
-			       matlab-shell-next-matching-input-from-input))
-	  ;; This hack keeps the cycling working well.
-	  (let ((last-command 'comint-previous-matching-input-from-input))
-	    (comint-next-matching-input-from-input (- n)))
-	;; first time.
-	(comint-next-matching-input-from-input (- n)))
+  (let ((minus-n (- n)))
+    (if (comint-after-pmark-p)
+        (if (memq last-command '(matlab-shell-previous-matching-input-from-input
+                                 matlab-shell-next-matching-input-from-input))
+            ;; This hack keeps the cycling working well.
+            (let ((last-command 'comint-previous-matching-input-from-input))
+              (comint-next-matching-input-from-input minus-n))
+            ;; first time.
+            (comint-next-matching-input-from-input minus-n))
 
-    ;; If somewhere else, just move around.
-    (previous-line n)))
+        ;; If somewhere else, just move around.
+        (forward-line minus-n))))
 
 (defun matlab-shell-delete-backwards-no-prompt (&optional arg)
   "Delete one char backwards without destroying the matlab prompt.
