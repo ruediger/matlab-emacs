@@ -1209,10 +1209,6 @@ All Key Bindings:
   (matlab-enable-block-highlighting 1)
   (if window-system (matlab-frame-init))
 
-  ; If the buffer already has a function definition, figure out the correct
-  ; settings for matlab-functions-have-end and matlab-indent-function.
-  (goto-char (point-max))
-
   ;; If first function is terminated with an end statement, then functions have
   ;; ends.
   (if (matlab-do-functions-have-end-p)
@@ -1230,19 +1226,21 @@ All Key Bindings:
   ;;    - look at the first line of code and if indented, keep indentation
   ;;      otherwise use MathWorks-Standard
   ;;
-  (cond 
+  (cond
    ((eq matlab-indent-function-body 'MathWorks-Standard)
     )
 
    ((eq matlab-indent-function-body 'guess)
     (save-excursion
+      (goto-char (point-max))
+
       (if (re-search-backward matlab-defun-regex nil t)
 	  (let ((beg (point))
 		end			; filled in later
 		(cc (current-column))
 		)
-	    (setq end (if matlab-functions-have-end 
-			  (progn (forward-line 0) (point)) 
+	    (setq end (if matlab-functions-have-end
+			  (progn (forward-line 0) (point))
 			(point-max)))
 	    (goto-char beg)
 	    (catch 'done
