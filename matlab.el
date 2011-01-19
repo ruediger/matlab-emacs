@@ -1209,10 +1209,6 @@ All Key Bindings:
   (matlab-enable-block-highlighting 1)
   (if window-system (matlab-frame-init))
 
-  ; If the buffer already has a function definition, figure out the correct
-  ; settings for matlab-functions-have-end and matlab-indent-function.
-  (goto-char (point-max))
-
   ;; If first function is terminated with an end statement, then functions have
   ;; ends.
   (if (matlab-do-functions-have-end-p)
@@ -1230,19 +1226,21 @@ All Key Bindings:
   ;;    - look at the first line of code and if indented, keep indentation
   ;;      otherwise use MathWorks-Standard
   ;;
-  (cond 
+  (cond
    ((eq matlab-indent-function-body 'MathWorks-Standard)
     )
 
    ((eq matlab-indent-function-body 'guess)
     (save-excursion
+      (goto-char (point-max))
+
       (if (re-search-backward matlab-defun-regex nil t)
 	  (let ((beg (point))
 		end			; filled in later
 		(cc (current-column))
 		)
-	    (setq end (if matlab-functions-have-end 
-			  (progn (forward-line 0) (point)) 
+	    (setq end (if matlab-functions-have-end
+			  (progn (forward-line 0) (point))
 			(point-max)))
 	    (goto-char beg)
 	    (catch 'done
@@ -4031,7 +4029,7 @@ desired.  Optional argument FAST is not used."
   "Keymap used in MATLAB mode to provide a menu.")
 
 (defun matlab-frame-init ()
-  "Initialize Emacs 19+ menu system."
+  "Initialize Emacs menu system."
   (interactive)
   ;; make a menu keymap
   (easy-menu-define
@@ -4039,8 +4037,12 @@ desired.  Optional argument FAST is not used."
    matlab-mode-map
    "MATLAB menu"
    '("MATLAB"
-     ["Start MATLAB" matlab-shell :active (not (or (matlab-with-emacs-link) (matlab-shell-active-p))) :visible (not (matlab-shell-active-p)) ]
-     ["Switch to MATLAB" matlab-shell :active (and (not (matlab-with-emacs-link)) (matlab-shell-active-p)) :visible (matlab-shell-active-p) ]
+     ["Start MATLAB" matlab-shell
+      :active (not (or (matlab-with-emacs-link) (matlab-shell-active-p)))
+      :visible (not (matlab-shell-active-p)) ]
+     ["Switch to MATLAB" matlab-shell
+      :active (and (not (matlab-with-emacs-link)) (matlab-shell-active-p))
+      :visible (matlab-shell-active-p) ]
      ["Save and go" matlab-shell-save-and-go t]
      ["Run Region" matlab-shell-run-region t]
      ["Run Cell" matlab-shell-run-cell t]
