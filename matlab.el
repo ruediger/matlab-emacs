@@ -4164,11 +4164,11 @@ Command switches are a list of strings.  Each entry is one switch."
   "The version of MATLAB running in the current `matlab-shell' buffer.")
 (defvar matlab-shell-running-matlab-release nil
   "The release of MATLAB running in the curbrent `matlab-shell' buffer.")
-(defvar matlab-shell-use-emacs-toolbox 
+(defvar matlab-shell-use-emacs-toolbox
   ;; matlab may not be on path.  (Name change, explicit load, etc)
-  (let ((mlfile (locate-library "matlab"))
-	(dir (expand-file-name "toolbox/emacsinit.m"
-			       (file-name-directory (or mlfile "")))))
+  (let* ((mlfile (locate-library "matlab"))
+	 (dir (expand-file-name "toolbox/emacsinit.m"
+				(file-name-directory (or mlfile "")))))
     (and mlfile (file-exists-p dir)))
   "Add the `matlab-shell' MATLAB toolbox to the MATLAB path on startup.")
 (defvar matlab-shell-emacsclient-command "emacsclient -n"
