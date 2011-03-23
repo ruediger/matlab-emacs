@@ -4165,9 +4165,11 @@ Command switches are a list of strings.  Each entry is one switch."
 (defvar matlab-shell-running-matlab-release nil
   "The release of MATLAB running in the curbrent `matlab-shell' buffer.")
 (defvar matlab-shell-use-emacs-toolbox 
-  (let ((dir (expand-file-name "toolbox/emacsinit.m"
-			       (file-name-directory (locate-library "matlab")))))
-    (file-exists-p dir))
+  ;; matlab may not be on path.  (Name change, explicit load, etc)
+  (let ((mlfile (locate-library "matlab"))
+	(dir (expand-file-name "toolbox/emacsinit.m"
+			       (file-name-directory (or mlfile "")))))
+    (and mlfile (file-exists-p dir)))
   "Add the `matlab-shell' MATLAB toolbox to the MATLAB path on startup.")
 (defvar matlab-shell-emacsclient-command "emacsclient -n"
   "The command to use as an external editor for MATLAB.
@@ -4832,6 +4834,8 @@ Returns a string path to the root of the executing MATLAB."
 	(string-match "$" output)
 	(substring output 0 (match-beginning 0))))))
 
+(defvar matlab-shell-window-exists-for-display-completion-flag nil
+  "Non-nil means there was an 'other-window' available when `display-completion-list' is called.")
 
 (defun matlab-shell-tab ()
    "Send [TAB] to the currently running matlab process and retrieve completion."
@@ -4872,23 +4876,53 @@ Returns a string path to the root of the executing MATLAB."
 	     (progn
 	       (insert (car (car completions)))
 	       ;; kill completions buffer if still visible
-	       (when (get-buffer "*Completions*")
-		 (delete-windows-on "*Completions*")))
+	       (matlab-shell-tab-hide-completions))
 	   (let ((try (try-completion lastcmd completions)))
 	     ;; Insert in a good completion.
 	     (cond ((or (eq try nil) (eq try t)
 			(and (stringp try)
 			     (string= try lastcmd)))
 		    (insert lastcmd)
+		    ;; Before displaying the completions buffer, check to see if
+		    ;; the completions window is already displayed, or if there is
+		    ;; a next window to display.  This determines how to remove the
+		    ;; completions later.
+		    (if (get-buffer-window "*Completions*")
+			nil ;; Recycle old value of the display flag.
+		      ;; Else, reset this variable.
+		      (setq matlab-shell-window-exists-for-display-completion-flag
+			    ;; Else, it isn't displayed, save an action.
+			    (if (eq (next-window) (selected-window))
+				;; If there is no other window, the post action is
+				;; to delete.
+				'delete
+			      ;; If there is a window to display, the post
+			      ;; action is to bury.
+			      'bury)))
 		    (with-output-to-temp-buffer "*Completions*"
 		      (display-completion-list (mapcar 'car completions) lastcmd)))
 		   ((stringp try)
 		    (insert try)
-		    (when (get-buffer "*Completions*")
-		      (delete-windows-on "*Completions*")))
+		    (matlab-shell-tab-hide-completions))
 		   (t
 		    (insert lastcmd))))
 	   )))))
+
+(defun matlab-shell-tab-hide-completions ()
+  "Hide any completion windows for `matlab-shell-tab'."
+  (cond ((eq matlab-shell-window-exists-for-display-completion-flag 'delete)
+	 (when (get-buffer "*Completions*")
+	   (delete-windows-on "*Completions*")))
+	((eq matlab-shell-window-exists-for-display-completion-flag 'bury)
+	 (let ((orig (selected-window))
+	       (bw nil))
+	   (while (setq bw (get-buffer-window "*Completions*"))
+	     (select-window bw)
+	     (bury-buffer))
+	   (select-window orig)))
+	)
+  ;; Reset state.
+  (setq matlab-shell-window-exists-for-display-completion-flag nil))
 
 
 ;;; MATLAB mode Shell commands ================================================
