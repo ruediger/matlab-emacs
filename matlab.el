@@ -4519,7 +4519,11 @@ in a popup buffer.
 Argument STR is the text for the anchor."
   (if (string-match matlab-anchor-end str)
       (save-excursion
-        (while (re-search-backward matlab-anchor-beg nil t)
+        (while (re-search-backward matlab-anchor-beg
+				   ;; Arbitrary back-buffer.  We don't
+				   ;; usually get text in such huge chunks
+				   (max (point-min) (- (point-max) 8192))
+				   t)
           (let* ((anchor-beg-start (match-beginning 0))
                  (anchor-beg-finish (match-end 0))
                  (anchor-text (match-string 1))
