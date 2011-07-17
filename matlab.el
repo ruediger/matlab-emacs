@@ -4993,8 +4993,9 @@ Similar to  `comint-send-input'."
 	(matlab-shell-add-to-input-history cmd)
 	(matlab-shell-send-string (concat cmd "\n"))))))
 
-(defun matlab-shell-run-region (beg end)
+(defun matlab-shell-run-region (beg end &optional noshow)
   "Run region from BEG to END and display result in MATLAB shell.
+If NOSHOW is non-nil, replace newlines with commas to suppress output.
 This command requires an active MATLAB shell."
   (interactive "r")
   (if (> beg end) (let (mid) (setq mid beg beg end end mid)))
@@ -5005,10 +5006,11 @@ This command requires an active MATLAB shell."
  				       "\n"
  				       (substring str (match-end 0)))))
 		   ;; HACK FOR NOSHOW
-		   (while (string-match "\n" str)
-		     (setq str (replace-match ", " t t str)))
-		   (setq str (concat str "\n"))
- 		   str))
+		   (when noshow
+		     (while (string-match "\n" str)
+		       (setq str (replace-match ", " t t str)))
+		     (setq str (concat str "\n")))
+		   str))
  	(msbn nil)
  	(lastcmd)
 	(inhibit-field-text-motion t))
@@ -5051,7 +5053,7 @@ This command requires an active MATLAB shell."
 			       (beginning-of-line)
 			       (forward-char -1))
 			     (point))))
-    (matlab-shell-run-region start end)))
+    (matlab-shell-run-region start end t)))
 
 (defun matlab-shell-run-region-or-line ()
   "Run region from BEG to END and display result in MATLAB shell.
