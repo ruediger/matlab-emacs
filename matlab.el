@@ -5002,7 +5002,7 @@ This command requires an active MATLAB shell."
   (let ((command (let ((str (concat (buffer-substring-no-properties beg end)
  				    "\n")))
  		   (while (or (string-match "\n\\s-*\n" str)
-			      (string-match "^\\s-*\\s<.*?\n" str))
+			      (string-match "\\s<.*?\n" str))
  		     (setq str (concat (substring str 0 (match-beginning 0))
  				       "\n"
  				       (substring str (match-end 0)))))
