@@ -5001,12 +5001,19 @@ This command requires an active MATLAB shell."
   (if (> beg end) (let (mid) (setq mid beg beg end end mid)))
   (let ((command (let ((str (concat (buffer-substring-no-properties beg end)
  				    "\n")))
- 		   (while (string-match "\n\\s-*\n" str)
+ 		   (while (or (string-match "\n\\s-*\n" str)
+			      (string-match "^\\s-*\\s<.*?\n" str))
  		     (setq str (concat (substring str 0 (match-beginning 0))
  				       "\n"
  				       (substring str (match-end 0)))))
-		   ;; HACK FOR NOSHOW
 		   (when noshow
+		     ;; Remove continuations
+		     (while (string-match
+			     (concat "\\s-*"
+				     (regexp-quote matlab-elipsis-string)
+				     "\\s-*\n")
+			     str)
+		       (setq str (replace-match " " t t str)))
 		     (while (string-match "\n" str)
 		       (setq str (replace-match ", " t t str)))
 		     (setq str (concat str "\n")))
