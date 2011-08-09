@@ -5001,7 +5001,7 @@ This command requires an active MATLAB shell."
   (if (> beg end) (let (mid) (setq mid beg beg end end mid)))
 
   (let ((command
-	 (let ((str (concat (buffer-string) "\n")))
+	 (let ((str (concat (buffer-substring beg end) "\n")))
 	   ;; Remove comments
 	   (with-temp-buffer
 	     (insert str)
