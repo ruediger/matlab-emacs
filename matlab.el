@@ -4759,7 +4759,7 @@ Optional argument ARG describes the number of chars to delete."
 STR is a substring to complete."
   (save-excursion
     (let* ((msbn (matlab-shell-buffer-barf-not-running))
-	   (cmd (concat "matlabMCRprocess = com.mathworks.jmi.MatlabMCR\n"
+	   (cmd (concat "matlabMCRprocess = com.mathworks.jmi.MatlabMCR;"
 			"matlabMCRprocess.mtFindAllTabCompletions('"
 			str "'), clear('matlabMCRprocess');"))
 	   (comint-scroll-show-maximum-output nil)
@@ -4999,25 +4999,33 @@ If NOSHOW is non-nil, replace newlines with commas to suppress output.
 This command requires an active MATLAB shell."
   (interactive "r")
   (if (> beg end) (let (mid) (setq mid beg beg end end mid)))
-  (let ((command (let ((str (concat (buffer-substring-no-properties beg end)
- 				    "\n")))
- 		   (while (or (string-match "\n\\s-*\n" str)
-			      (string-match "\\s<.*?\n" str))
- 		     (setq str (concat (substring str 0 (match-beginning 0))
- 				       "\n"
- 				       (substring str (match-end 0)))))
-		   (when noshow
-		     ;; Remove continuations
-		     (while (string-match
-			     (concat "\\s-*"
-				     (regexp-quote matlab-elipsis-string)
-				     "\\s-*\n")
-			     str)
-		       (setq str (replace-match " " t t str)))
-		     (while (string-match "\n" str)
-		       (setq str (replace-match ", " t t str)))
-		     (setq str (concat str "\n")))
-		   str))
+
+  (let ((command
+	 (let ((str (concat (buffer-string) "\n")))
+	   ;; Remove comments
+	   (with-temp-buffer
+	     (insert str)
+	     (goto-char (point-min))
+	     (while (search-forward "%" nil t)
+	       (when (not (matlab-cursor-in-string))
+		 (delete-region (1- (point)) (matlab-point-at-eol))))
+	     (setq str (buffer-substring-no-properties (point-min) (point-max))))
+	   (while (string-match "\n\\s-*\n" str)
+	     (setq str (concat (substring str 0 (match-beginning 0))
+			       "\n"
+			       (substring str (match-end 0)))))
+	   (when noshow
+	     ;; Remove continuations
+	     (while (string-match
+		     (concat "\\s-*"
+			     (regexp-quote matlab-elipsis-string)
+			     "\\s-*\n")
+		     str)
+	       (setq str (replace-match " " t t str)))
+	     (while (string-match "\n" str)
+	       (setq str (replace-match ", " t t str)))
+	     (setq str (concat str "\n")))
+	   str))
  	(msbn nil)
  	(lastcmd)
 	(inhibit-field-text-motion t))
@@ -5228,7 +5236,7 @@ indication that it ran."
       (delete-region (point) (matlab-point-at-eol))
       ;; We are done error checking, run the command.
       (setq pos (point))
-      (comint-send-string (get-buffer-process (current-buffer))
+      (comint-simple-send (get-buffer-process (current-buffer))
 			  (concat command "\n"))
       ;;(message "MATLAB ... Executing command.")
       (goto-char (point-max))
