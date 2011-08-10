@@ -4426,6 +4426,8 @@ in a popup buffer.
   ;; Add pseudo html-renderer
   (add-hook 'comint-output-filter-functions 'matlab-shell-render-html-anchor nil t)
   (add-hook 'comint-output-filter-functions 'matlab-shell-render-errors-as-anchor nil t)
+  ;; Scroll to bottom after running cell/region
+  (add-hook 'comint-output-filter-functions 'comint-postoutput-scroll-to-bottom)
 
   (make-local-variable 'comment-start)
   (setq comment-start "%")
