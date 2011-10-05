@@ -1897,7 +1897,9 @@ Return the symbol 'cellstart if it is a double %%."
 			(matlab-ltype-empty))
 		    (not (eobp)))
 	  (forward-line 1))
-	(matlab-ltype-function-definition)))))
+	(and (matlab-ltype-function-definition)
+	     (not (save-excursion (matlab-beginning-of-enclosing-defun))))
+	))))
 
 (defun matlab-ltype-continued-comm ()
   "Return column of previous line's comment start, or nil."
@@ -4415,7 +4417,7 @@ in a popup buffer.
   ;; Shell Setup
   (require 'shell)
   (if (fboundp 'shell-directory-tracker)
-      (add-hook 'comint-input-filter-functions 'shell-directory-tracker))
+      (add-hook 'comint-input-filter-functions 'shell-directory-tracker nil t)) ;; patch Eli Merriam
   ;; Add a spiffy logo if we are running XEmacs
   (if (and (string-match "XEmacs" emacs-version)
 	   (stringp matlab-shell-logo)
@@ -4425,6 +4427,7 @@ in a popup buffer.
   (add-hook 'comint-output-filter-functions 'matlab-shell-version-scrape)
   ;; Add pseudo html-renderer
   (add-hook 'comint-output-filter-functions 'matlab-shell-render-html-anchor nil t)
+  (add-hook 'comint-output-filter-functions 'matlab-shell-render-html-txt-format nil t)
   (add-hook 'comint-output-filter-functions 'matlab-shell-render-errors-as-anchor nil t)
   ;; Scroll to bottom after running cell/region
   (add-hook 'comint-output-filter-functions 'comint-postoutput-scroll-to-bottom)
@@ -4510,6 +4513,7 @@ in a popup buffer.
     km)
   "Keymap used on overlays that represent errors.")
 
+;; ANCHORS
 (defvar matlab-anchor-beg "<a href=\"\\(?:matlab: \\)?\\([^\"]+\\)\">"
   "Beginning of html anchor.")
 
@@ -4542,6 +4546,49 @@ Argument STR is the text for the anchor."
             ))))
   )
 
+;; TEXT FORMATTING
+(defvar matlab-txt-format-beg "<\\(strong\\|u\\)>"
+  "Beginning of html text formatting signal in HTML.")
+
+(defvar matlab-txt-format-end "</%s>"
+  "End of some html text formatter.
+Includes a %s to match the kind of text format start regexp.")
+
+(defun matlab-shell-render-html-txt-format (str)
+  "Render html text format inserted into the MATLAB shell buffer.
+Argument STR is the text for the text formater."
+  (if (string-match "</\\w+>" str)
+      (save-excursion
+        (while (re-search-backward matlab-txt-format-beg
+				   ;; Arbitrary back-buffer.  We don't
+				   ;; usually get text in such huge chunks
+				   (max (point-min) (- (point-max) 8192))
+				   t)
+          (let* ((txt-format-beg-start (match-beginning 0))
+                 (txt-format-beg-finish (match-end 0))
+                 (txt-format-text (match-string 1))
+                 (txt-format-end-finish
+		  ;; The finish combines the text from the start to get an
+		  ;; exact match.
+		  (search-forward (format matlab-txt-format-end txt-format-text)))
+                 (txt-format-end-start (match-beginning 0))
+                 (o (matlab-make-overlay txt-format-beg-finish txt-format-end-start)))
+	    (cond ((string= txt-format-text "strong")
+		   (upcase-region txt-format-beg-finish txt-format-end-start)
+		   (matlab-overlay-put o 'face 'bold))
+		  ((string= txt-format-text "u")
+		   (matlab-overlay-put o 'face 'underline))
+		  (t
+		   ;; If we don't match, delete the overlay instead.
+		   (matlab-delete-overlay o)
+		   (setq o nil)
+		   ))
+	    (when o
+	      (delete-region txt-format-end-start txt-format-end-finish)
+	      (delete-region txt-format-beg-start txt-format-beg-finish))
+            ))))
+  )
+
 ;; The regular expression covers the following form:
 ;; Errors:  Error in ==> <function name>
 ;;          On line # ==> <command_name>
@@ -4557,6 +4604,9 @@ Argument STR is the text for the anchor."
 
 (defvar matlab-shell-last-error-anchor nil
   "Last point where an error anchor was set.")
+(defvar matlab-shell-last-anchor-as-frame nil
+  ;; NOTE: this isn't being used yet.
+  "The last error anchor saved, represented as a debugger frame.")
 
 (defun matlab-shell-render-errors-as-anchor (str)
   "Detect non-url errors, and treat them as if they were url anchors.
@@ -4586,6 +4636,9 @@ Argument STR is the text that might have errors in it."
 	  (matlab-overlay-put o 'help-echo (concat "Jump to error at " err-file "."))
 	  (setq first url)
 	  (push o overlaystack)
+	  ;; Save as a frame
+	  (setq matlab-shell-last-anchor-as-frame
+		(cons err-file err-line))
 	  ))
       ;; Keep track of the very first error in this error stack.
       ;; It will represent the "place to go" for "go-to-last-error".
@@ -4662,6 +4715,10 @@ end\n"
 	      (setq ef (substring url (match-beginning 1) (match-end 1))
 		    el (substring url (match-beginning 2) (match-end 2)))
 	      )
+	     ;; If we have the prompt, but no match (as above),
+	     ;; perhaps it is already dumped out into the buffer.  In
+	     ;; that case, look back through the buffer.
+	     
 	     )
 	    (when ef
 	      (setq frame (cons ef (string-to-number el)))))))
@@ -4730,6 +4787,7 @@ end\n"
 (defun matlab-shell-previous-matching-input-from-input (n)
   "Get the Nth previous matching input from for the command line."
   (interactive "p")
+  (end-of-line) ;; patch: Mark Histed
   (if (comint-after-pmark-p)
       (if (memq last-command '(matlab-shell-previous-matching-input-from-input
 			       matlab-shell-next-matching-input-from-input))
@@ -5050,7 +5108,7 @@ This command requires an active MATLAB shell."
 	(insert lastcmd))
       (set-buffer msbn)
       (goto-char (point-max))
-      (display-buffer msbn))
+      (display-buffer msbn nil "visible"))
     ))
 
 (defun matlab-shell-run-cell ()
